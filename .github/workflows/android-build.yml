@@ -24,6 +24,11 @@ on:
         required: false
         type: string
         default: ""
+      build_reference_core:
+        description: "Also build the pinned public Skyline reference source (long native build)"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -244,3 +249,60 @@ jobs:
             dist/SkylineDimm-release.aab
             dist/SIGNING_STATUS.txt
             dist/SHA256SUMS.txt
+
+  reference-core-build:
+    name: Build pinned Skyline reference core (optional)
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_reference_core }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Checkout pinned Skyline source and all submodules
+        uses: actions/checkout@v4
+        with:
+          repository: im030/skyline-emu
+          ref: 35fb874a42cb548cbd3d66a00d65e4b2a4c1516b
+          submodules: recursive
+          fetch-depth: 1
+          path: reference/skyline
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install reference toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null
+          sdkmanager --install \
+            "platforms;android-33" \
+            "build-tools;33.0.2" \
+            "ndk;25.0.8775105" \
+            "cmake;3.22.1"
+
+      - name: Build original Skyline reference APK
+        working-directory: reference/skyline
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x ./gradlew
+          ./gradlew --no-daemon --stacktrace --max-workers=2 :app:assembleFullDebug
+          APK="app/build/outputs/apk/full/debug/app-full-debug.apk"
+          test -s "$APK"
+          mkdir -p "$GITHUB_WORKSPACE/reference-dist"
+          cp "$APK" "$GITHUB_WORKSPACE/reference-dist/Skyline-Reference-full-debug.apk"
+          sha256sum "$GITHUB_WORKSPACE/reference-dist/Skyline-Reference-full-debug.apk" \
+            > "$GITHUB_WORKSPACE/reference-dist/SHA256SUMS.txt"
+
+      - name: Upload reference emulator APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Skyline-Reference-Core-APK
+          path: reference-dist/
+          if-no-files-found: error
+          retention-days: 30
