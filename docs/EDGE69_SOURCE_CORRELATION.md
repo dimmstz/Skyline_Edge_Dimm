@@ -60,3 +60,34 @@ O repositório `Skyline_Edge_Dimm` continua com uma tela de diagnóstico mínima
 ## CI validation update
 
 The isolated reference build now uses the runner-provided Android SDK command-line tools directly. This avoids the obsolete `tools` package request made by the setup action and installs only the pinned Android 33, NDK 25.0.8775105, and CMake 3.22.1 components required by this historical source tree.
+
+
+## Auditoria do vídeo das cutscenes (25/11/2026)
+
+### Causa confirmada na revisão nativa fixada
+
+Na revisão `im030/skyline-emu@35fb874a42cb548cbd3d66a00d65e4b2a4c1516b`, os pontos de entrada de vídeo do Host1x não implementam decodificação:
+
+- `app/src/main/cpp/skyline/soc/host1x/classes/nvdec.cpp`: `NvDecClass::CallMethod` apenas registra métodos como desconhecidos; não decodifica H.264/VP8/VP9 nem produz quadros.
+- `app/src/main/cpp/skyline/soc/host1x/classes/vic.cpp`: `VicClass::CallMethod` também só registra métodos desconhecidos; não realiza composição/formatação dos quadros.
+- `app/src/main/cpp/skyline/soc/host1x/classes/host1x.cpp`: a classe geral trata syncpoints, mas não substitui os comandos NVDEC/VIC.
+
+Isso é compatível com o sintoma observado: o áudio da sequência pode continuar enquanto a imagem do vídeo não é decodificada/apresentada. Não é evidência de defeito no codec de áudio ou de uma simples opção gráfica.
+
+### Por que não foi aplicado um patch superficial
+
+O Skyline Edge Dimm ainda não contém o núcleo C++/Host1x: a árvore do projeto contém somente a base Android de diagnóstico, documentação e workflows. Portanto, não existe neste repositório um arquivo NVDEC/VIC integrado que possa ser corrigido isoladamente.
+
+Uma implementação funcional exige integrar uma pilha coerente de:
+1. parsing dos métodos e estruturas de contexto NVDEC enviados pelo jogo;
+2. leitura segura dos bitstreams e superfícies na memória GPU emulada;
+3. decodificação H.264/VP8/VP9 compatível com os formatos usados pelo jogo;
+4. sinalização correta de fences/syncpoints;
+5. composição/conversão VIC e entrega da imagem ao caminho de apresentação Vulkan;
+6. testes de regressão para evitar travamentos, corrupção de memória e regressões de FPS.
+
+Foi localizado um projeto público com implementação mais completa desses componentes, mas ele usa uma arquitetura e dependências diferentes. A migração não é um transplante de dois arquivos: precisa de revisão de licença, dependências (incluindo FFmpeg), tipos de memória, sincronização e integração de renderização. Não copiar código incompatível sem essa auditoria.
+
+### Validação de CI iniciada
+
+A execução nativa isolada deve compilar a revisão Skyline fixada e validar o APK de referência. Isso valida a toolchain e o ponto de partida, mas **não corrige nem comprova a reprodução das cutscenes**. A confirmação final depende de integrar NVDEC/VIC e testar o Resident Evil 4 no dispositivo Android.
