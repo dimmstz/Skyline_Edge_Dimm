@@ -252,7 +252,7 @@ jobs:
 
   reference-core-build:
     name: Build pinned Skyline reference core (optional)
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_reference_core }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.build_reference_core) || (github.event_name == 'push' && github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, 'build-reference-core:')) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
