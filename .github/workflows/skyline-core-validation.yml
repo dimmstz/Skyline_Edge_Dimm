@@ -1,4 +1,4 @@
-name: Skyline Core Integration Validation
+name: Skyline Dimm Candidate Validation
 
 on:
   pull_request:
@@ -6,6 +6,7 @@ on:
     paths:
       - ".gitmodules"
       - "vendor/skyline-upstream"
+      - "tools/apply-dimm-overlay.py"
       - ".github/workflows/skyline-core-validation.yml"
   workflow_dispatch:
 
@@ -18,7 +19,7 @@ concurrency:
 
 jobs:
   build-pinned-core:
-    name: Build pinned upstream Skyline Release
+    name: Build and verify Skyline Dimm native candidate
     runs-on: ubuntu-24.04
     timeout-minutes: 100
 
@@ -46,6 +47,12 @@ jobs:
           test -f app/CMakeLists.txt
           test -f app/src/main/cpp/emu_jni.cpp
           test -f app/src/main/AndroidManifest.xml
+
+      - name: Apply guarded Dimm identity overlay
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/apply-dimm-overlay.py --source vendor/skyline-upstream
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -83,7 +90,7 @@ jobs:
             "ndk;25.0.8775105" \
             "cmake;3.22.1"
 
-      - name: Build complete Skyline native Release
+      - name: Build Skyline Dimm native Release
         working-directory: vendor/skyline-upstream
         shell: bash
         run: |
@@ -91,7 +98,7 @@ jobs:
           chmod +x ./gradlew
           ./gradlew --no-daemon --stacktrace --max-workers=2 :app:assembleFullRelease
 
-      - name: Verify APK and native core
+      - name: Verify Dimm APK identity and native core
         working-directory: vendor/skyline-upstream
         shell: bash
         run: |
@@ -99,22 +106,26 @@ jobs:
           APK="$(find app/build/outputs/apk/full/release -maxdepth 1 -type f -name '*.apk' -print -quit)"
           test -n "$APK"
           test -s "$APK"
-          "$ANDROID_HOME/build-tools/33.0.2/aapt" dump badging "$APK" > "$RUNNER_TEMP/skyline-apk-metadata.txt"
-          "$ANDROID_HOME/build-tools/33.0.2/apksigner" verify --verbose "$APK"
+          AAPT="$ANDROID_HOME/build-tools/33.0.2/aapt"
+          APKSIGNER="$ANDROID_HOME/build-tools/33.0.2/apksigner"
+          "$AAPT" dump badging "$APK" > "$RUNNER_TEMP/skyline-dimm-apk-metadata.txt"
+          grep -F "package: name='com.dimm.skyline'" "$RUNNER_TEMP/skyline-dimm-apk-metadata.txt"
+          grep -F "versionName='0.2.0-dimm'" "$RUNNER_TEMP/skyline-dimm-apk-metadata.txt"
+          "$APKSIGNER" verify --verbose "$APK"
           unzip -l "$APK" | grep -q 'lib/arm64-v8a/libskyline.so'
           if unzip -l "$APK" | grep -q 'libVkLayer_khronos_validation.so'; then
             echo "Release APK unexpectedly contains Vulkan validation layers."
             exit 1
           fi
           mkdir -p "$GITHUB_WORKSPACE/integration-dist"
-          cp "$APK" "$GITHUB_WORKSPACE/integration-dist/Skyline-Core-Integration-Release.apk"
-          cp "$RUNNER_TEMP/skyline-apk-metadata.txt" "$GITHUB_WORKSPACE/integration-dist/APK-METADATA.txt"
-          sha256sum "$GITHUB_WORKSPACE/integration-dist/Skyline-Core-Integration-Release.apk" > "$GITHUB_WORKSPACE/integration-dist/SHA256SUMS.txt"
+          cp "$APK" "$GITHUB_WORKSPACE/integration-dist/Skyline-Dimm-Candidate.apk"
+          cp "$RUNNER_TEMP/skyline-dimm-apk-metadata.txt" "$GITHUB_WORKSPACE/integration-dist/APK-METADATA.txt"
+          sha256sum "$GITHUB_WORKSPACE/integration-dist/Skyline-Dimm-Candidate.apk" > "$GITHUB_WORKSPACE/integration-dist/SHA256SUMS.txt"
 
-      - name: Upload validated upstream build
+      - name: Upload Skyline Dimm candidate APK
         uses: actions/upload-artifact@v4
         with:
-          name: Skyline-Core-Integration-Release
+          name: Skyline-Dimm-Candidate-APK
           path: integration-dist/
           if-no-files-found: error
           retention-days: 14
