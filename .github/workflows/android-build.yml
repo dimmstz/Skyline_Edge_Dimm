@@ -277,6 +277,35 @@ jobs:
           git submodule sync --recursive
           git submodule update --init --recursive --depth=1
 
+      # The pinned upstream settings.gradle only includes :app. Its root
+      # build.gradle declares Hilt through the plugins DSL, so Gradle needs
+      # Google's Maven repository in pluginManagement (not only dependencies).
+      - name: Configure Gradle plugin repositories for pinned Skyline
+        working-directory: reference/skyline
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          settings = Path("settings.gradle")
+          original = settings.read_text(encoding="utf-8")
+          if "pluginManagement" not in original:
+              block = """pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+
+          """
+              settings.write_text(block + original, encoding="utf-8")
+          elif "google()" not in original.split("pluginManagement", 1)[1].split("}", 1)[0]:
+              raise SystemExit("pluginManagement exists but does not declare google(); refusing unsafe rewrite")
+          PY
+          grep -A6 '^pluginManagement' settings.gradle
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
