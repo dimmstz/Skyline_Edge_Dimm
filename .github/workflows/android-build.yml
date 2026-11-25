@@ -431,7 +431,7 @@ jobs:
           test -s release-assets/SHA256SUMS.txt
           grep -q "package: name='com.dimm.skyline'" release-assets/APK-METADATA.txt
           grep -q "versionName='0.1.0-dimm'" release-assets/APK-METADATA.txt
-          sha256sum --check release-assets/SHA256SUMS.txt
+          (cd release-assets && sha256sum --check SHA256SUMS.txt)
 
       - name: Publish native emulator release
         uses: softprops/action-gh-release@v2
