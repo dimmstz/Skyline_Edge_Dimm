@@ -391,13 +391,13 @@ jobs:
           AAPT="$ANDROID_HOME/build-tools/33.0.2/aapt"
           APKSIGNER="$ANDROID_HOME/build-tools/33.0.2/apksigner"
           "$AAPT" dump badging "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.apk" > "$GITHUB_WORKSPACE/reference-dist/APK-METADATA.txt"
-          "$APKSIGNER" verify --verbose "$GITHUB_WORKSPACE/reference-dist/Skyline-Reference-full-release.apk"
-          unzip -l "$GITHUB_WORKSPACE/reference-dist/Skyline-Reference-full-release.apk" | grep -q 'lib/arm64-v8a/libskyline.so'
-          if unzip -l "$GITHUB_WORKSPACE/reference-dist/Skyline-Reference-full-release.apk" | grep -q 'libVkLayer_khronos_validation.so'; then
+          "$APKSIGNER" verify --verbose "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.apk"
+          unzip -l "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.apk" | grep -q 'lib/arm64-v8a/libskyline.so'
+          if unzip -l "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.apk" | grep -q 'libVkLayer_khronos_validation.so'; then
             echo "Unexpected Vulkan validation layer in optimized release APK."
             exit 1
           fi
-          sha256sum "$GITHUB_WORKSPACE/reference-dist/Skyline-Reference-full-release.apk" \
+          sha256sum "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.apk" \
             > "$GITHUB_WORKSPACE/reference-dist/SHA256SUMS.txt"
 
       - name: Upload optimized reference emulator APK
