@@ -41,6 +41,7 @@ concurrency:
 jobs:
   build:
     name: Build and verify Android packages
+    if: ${{ github.ref_type != 'tag' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
 
@@ -213,19 +214,17 @@ jobs:
 
       - name: Resolve release tag
         id: release_meta
-        if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish_release) || (github.event_name == 'push' && github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, 'release:'))
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.publish_release)
         shell: bash
         env:
-          RELEASE_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
           RELEASE_TAG_INPUT: ${{ inputs.release_tag }}
+          RUN_NUMBER: ${{ github.run_number }}
         run: |
           set -euo pipefail
-          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
-            TAG_NAME="${GITHUB_REF#refs/tags/}"
-          elif [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
             TAG_NAME="$RELEASE_TAG_INPUT"
           else
-            TAG_NAME="${RELEASE_COMMIT_MESSAGE#release: }"
+            TAG_NAME="v0.1.$RUN_NUMBER"
           fi
           if [[ ! "$TAG_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][A-Za-z0-9.-]+)?$ ]]; then
             echo "Invalid release tag: $TAG_NAME (expected vX.Y.Z)"
@@ -411,9 +410,9 @@ jobs:
           retention-days: 30
 
   publish-reference-release:
-    name: Publish native Skyline Dimm APK
-    needs: reference-core-build
-    if: ${{ success() && ((github.event_name == 'push' && github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, 'build-reference-core:')) || (github.event_name == 'workflow_dispatch' && inputs.build_reference_core && inputs.publish_release)) }}
+    name: Attach native Skyline APK to this build's Release
+    needs: [build, reference-core-build]
+    if: ${{ success() && ((github.event_name == 'push' && github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, 'build-reference-core:')) || (github.event_name == 'workflow_dispatch' && inputs.build_reference_core)) }}
     runs-on: ubuntu-24.04
     steps:
       - name: Download verified native APK
@@ -436,9 +435,9 @@ jobs:
       - name: Publish native emulator release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.1
+          tag_name: v0.1.${{ github.run_number }}
           target_commitish: ${{ github.sha }}
-          name: Skyline Dimm v0.1.1 - Native M23 build
+          name: Skyline Dimm v0.1.${{ github.run_number }} - Native M23 build
           body: |
             Native Android release built from the pinned Skyline source.
 
@@ -458,5 +457,9 @@ jobs:
           generate_release_notes: true
           make_latest: true
 
-# Trigger the native reference build only on commits prefixed with build-reference-core:.
-# CI trigger audit: native build requests must use this exact commit-message prefix.
+# Automatic publishing policy:
+# - Every successful push to main gets a unique v0.1.<run_number> tag and Release.
+# - The Android APK/AAB are published by the build job.
+# - If the optional native reference build runs, its APK is attached to that same Release.
+# - Tag-triggered runs are skipped to prevent recursive duplicate builds/releases.
+# - Prefix build-reference-core: on main to request the optional native build.
