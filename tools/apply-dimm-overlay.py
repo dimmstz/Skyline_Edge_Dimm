@@ -20,6 +20,23 @@ def replace_exact(path: Path, old: str, new: str) -> None:
     path.write_text(source.replace(old, new, 1), encoding="utf-8")
 
 
+
+def ensure_default_string(path: Path, name: str, value: str) -> None:
+    """Add a missing default-locale fallback without touching translations."""
+    if not path.is_file():
+        raise SystemExit(f"Required Android strings file is missing: {path}")
+    source = path.read_text(encoding="utf-8")
+    import re
+    pattern = rf'<string\\s+name="{re.escape(name)}"'
+    if re.search(pattern, source):
+        return
+    closing = "</resources>"
+    if source.count(closing) != 1:
+        raise SystemExit(f"Could not safely locate resources closing tag in {path}")
+    entry = f'    <string name="{name}">{value}</string>\\n'
+    path.write_text(source.replace(closing, entry + closing, 1), encoding="utf-8")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -52,6 +69,13 @@ def main() -> None:
         strings,
         '<string name="app_name" translatable="false">Skyline</string>',
         '<string name="app_name" translatable="false">Skyline Dimm</string>',
+    )
+    # Upstream translations contain this key, but the default locale omitted it.
+    # Supply an English fallback so Android Lint can validate every locale.
+    ensure_default_string(
+        strings,
+        "failed_open_directory",
+        "No file manager was found to open the emulator's internal directory.",
     )
     replace_exact(
         emulation,
