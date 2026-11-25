@@ -1,0 +1,3 @@
+[submodule "vendor/skyline-upstream"]
+	path = vendor/skyline-upstream
+	url = https://github.com/im030/skyline-emu.git
