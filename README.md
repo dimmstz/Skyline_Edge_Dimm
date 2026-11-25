@@ -1,31 +1,151 @@
 # Skyline Dimm
 
-Reconstrução inicial do aplicativo Android a partir do APK Edge 69 fornecido.
+[![Android CI and Release](https://github.com/dimmstz/Skyline_Edge_Dimm/actions/workflows/android-build.yml/badge.svg?branch=main)](https://github.com/dimmstz/Skyline_Edge_Dimm/actions/workflows/android-build.yml)
+[![Latest Release](https://img.shields.io/github/v/release/dimmstz/Skyline_Edge_Dimm?display_name=tag)](https://github.com/dimmstz/Skyline_Edge_Dimm/releases)
 
-## Estado real da recuperação
+Projeto de reconstrução e estudo do aplicativo Skyline Edge 69 para Android. O repositório contém atualmente uma base Android mínima, documentação da análise do APK e automação de compilação. **Ainda não é uma reconstrução funcional do emulador.**
 
-- APK de origem: `edge-69.apk` (27.103.127 bytes).
-- SHA-256: `354b06220688bd1a8cfe8cece607b2005e09f892f2cc49070edbe3ae46404ae`.
-- 1.544 entradas ZIP identificadas e extraídas no pacote de reconstrução local.
-- DEX: `classes.dex`.
-- Bibliotecas ARM64: `libskyline.so`, `libhook_impl.so`, `libmain_hook.so`, `libgsl_alloc_hook.so`, `libfile_redirect_hook.so` e `librenderscript-toolkit.so`.
+## Estado do projeto
 
-**Importante:** o código Kotlin deste repositório é uma base Android mínima criada para iniciar a reconstrução. Não é o código original decompilado. O DEX e as bibliotecas nativas são binários compilados; a recuperação completa exige decompilação, engenharia reversa nativa e validação funcional.
+- APK de referência analisado: `edge-69.apk`, 27.103.127 bytes.
+- SHA-256 do APK: `354b06220688bd1a8cfe8cece607b2005e09f892f2cc49070edbe3ae46404ae`.
+- 1.544 entradas ZIP identificadas na extração local.
+- DEX principal: `classes.dex`.
+- Bibliotecas ARM64 encontradas: `libskyline.so`, `libhook_impl.so`, `libmain_hook.so`, `libgsl_alloc_hook.so`, `libfile_redirect_hook.so` e `librenderscript-toolkit.so`.
+- Package ID atual da base: `com.dimm.skyline`.
+- Min SDK: Android 6.0 (API 23); compile/target SDK: API 35.
+- JDK: 17; Gradle usado no CI: 8.9.
 
-## Build
+A tela Kotlin atual é uma implementação nova de diagnóstico. Não é código original recuperado do APK. O bytecode DEX e o núcleo nativo ainda exigem decompilação, análise e integração.
 
-O workflow `.github/workflows/android-build.yml` compila APK debug, APK release e AAB em GitHub Actions. Os artefatos ficam disponíveis na execução do workflow. Tags `v*` publicam os artefatos em uma GitHub Release.
+Consulte [APK_REVERSE_ENGINEERING.md](APK_REVERSE_ENGINEERING.md) para os achados técnicos e limites da extração.
 
-## Pacote extraído
+## Downloads
 
-O pacote completo com os arquivos extraídos e o APK original foi gerado separadamente como `skyline_dimm-reconstruction.zip`. Ele não está incluído neste commit porque excede o limite prático de envio de arquivos grandes pela API de conteúdo do GitHub. Não descarte o APK original.
+A cada execução válida do workflow, o GitHub Actions publica um artefato ZIP com:
 
-## Próximas etapas técnicas
+| Arquivo | Finalidade |
+|---|---|
+| `SkylineDimm-debug.apk` | APK de depuração assinado automaticamente pelo Android Gradle Plugin; indicado para instalação e teste. |
+| `SkylineDimm-release.apk` | APK de release. Será assinado se as credenciais de assinatura estiverem configuradas; caso contrário, ficará sem assinatura. |
+| `SkylineDimm-release.aab` | Android App Bundle, assinado quando as credenciais estiverem configuradas. |
+| `SHA256SUMS.txt` | Hash SHA-256 dos arquivos publicados. |
+| `SIGNING_STATUS.txt` | Informa se a variante release foi assinada. |
 
-1. Decompilar `classes.dex` com JADX e mapear classes, pacotes e chamadas JNI.
-2. Decodificar o Manifest e recursos Android.
-3. Mapear símbolos e dependências das bibliotecas ARM64.
-4. Recriar módulos e dependências gradualmente.
-5. Validar instalação, inicialização e execução de jogos em dispositivo real.
+Os artefatos temporários de Actions expiram após 30 dias. Releases criadas por tag permanecem na página [Releases](https://github.com/dimmstz/Skyline_Edge_Dimm/releases).
 
-Verifique os direitos de redistribuição antes de publicar APKs, bibliotecas ou recursos proprietários.
+**Atenção:** sem assinatura de release configurada, use o APK debug para testar no aparelho. O APK release sem assinatura não pode ser instalado diretamente e o AAB não está pronto para publicação na Play Store.
+
+## Compilar localmente
+
+Requisitos: JDK 17, Android SDK com plataforma 35 e Build Tools 35.0.0, Gradle 8.9.
+
+Na raiz do repositório:
+
+```bash
+gradle --version
+gradle --no-daemon clean testDebugUnitTest assembleDebug assembleRelease bundleRelease
+```
+
+Saídas principais:
+
+- `app/build/outputs/apk/debug/app-debug.apk`
+- `app/build/outputs/apk/release/app-release-unsigned.apk` (quando não há assinatura)
+- `app/build/outputs/bundle/release/app-release.aab`
+
+## GitHub Actions: fluxo completo
+
+Arquivo: [`.github/workflows/android-build.yml`](.github/workflows/android-build.yml)
+
+O workflow executa automaticamente em:
+
+- Push para `main`.
+- Pull requests.
+- Push de tags no padrão `v*`.
+- Execução manual em **Actions → Android CI and Release → Run workflow**.
+
+Etapas do pipeline:
+
+1. Checkout do código.
+2. Configuração do JDK 17.
+3. Instalação/verificação das Android Command-line Tools e SDK API 35.
+4. Configuração do Gradle 8.9.
+5. Execução dos testes unitários disponíveis.
+6. Compilação APK debug, APK release e AAB.
+7. Validação dos arquivos, Manifest, estrutura AAB e assinatura quando habilitada.
+8. Geração dos hashes SHA-256.
+9. Upload dos artefatos.
+10. Publicação de GitHub Release quando executado por uma tag `v*` ou quando solicitado no disparo manual.
+
+### Criar uma tag e uma Release
+
+Opção automática pelo GitHub:
+
+1. Abra a aba **Actions** do repositório.
+2. Selecione **Android CI and Release**.
+3. Clique em **Run workflow** na branch `main`.
+4. Marque `publish_release`.
+5. Informe a tag, por exemplo `v0.1.0`.
+6. Execute. O workflow compila, cria a tag caso ainda não exista e publica APK, AAB e checksums.
+
+Também é possível criar e enviar uma tag Git manualmente:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+O push da tag dispara o pipeline e publica os arquivos na Release correspondente.
+
+### Assinatura estável para releases (recomendado)
+
+Para distribuir atualizações instaláveis sobre versões anteriores ou publicar na Play Store, configure os seguintes **GitHub Actions Secrets** em **Settings → Secrets and variables → Actions**:
+
+- `ANDROID_KEYSTORE_BASE64`: arquivo keystore codificado em Base64.
+- `ANDROID_STORE_PASSWORD`: senha do keystore.
+- `ANDROID_KEY_ALIAS`: alias da chave.
+- `ANDROID_KEY_PASSWORD`: senha da chave.
+
+Exemplo local para converter o keystore em Base64:
+
+```bash
+base64 -w 0 release-key.jks
+```
+
+Nunca coloque keystore, senhas ou chaves privadas no Git. Sem esses quatro secrets, o pipeline continua compilando e publica o APK debug assinado para testes, mas a variante release fica sem assinatura. Use sempre o mesmo keystore para manter a possibilidade de atualização entre versões.
+
+## Estrutura
+
+```text
+.
+├── .github/workflows/android-build.yml
+├── app/
+│   ├── build.gradle.kts
+│   └── src/main/
+│       ├── AndroidManifest.xml
+│       └── java/com/dimm/skyline/MainActivity.kt
+├── APK_ANALYSIS.json
+├── APK_REVERSE_ENGINEERING.md
+├── build.gradle.kts
+├── gradle.properties
+└── settings.gradle.kts
+```
+
+## Próximas etapas de engenharia reversa
+
+1. Decompilar o DEX e revisar as classes principais.
+2. Decodificar Manifest e recursos Android do APK.
+3. Mapear JNI, símbolos e dependências de `libskyline.so`.
+4. Comparar os componentes com fontes Skyline compatíveis e respeitar suas licenças.
+5. Reintegrar módulos progressivamente.
+6. Validar inicialização, drivers gráficos e execução de jogos em hardware ARM64 real.
+
+## Licenças e atribuições
+
+Este repositório ainda não declara uma licença global para os arquivos novos. O APK de referência e suas bibliotecas podem ter direitos e condições de redistribuição próprios. Não publique binários extraídos sem confirmar que possui autorização.
+
+Um espelho público da família Skyline consultado durante a análise declara MPL-2.0; isso não significa que todos os componentes do APK Edge 69 tenham a mesma licença. Preserve os avisos de copyright e licenças de cada componente utilizado.
+
+## Aviso
+
+Skyline Dimm é um projeto independente de estudo e reconstrução. Não é afiliado nem endossado pelos autores originais do Skyline ou por fabricantes de dispositivos.
