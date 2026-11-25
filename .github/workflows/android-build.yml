@@ -41,6 +41,8 @@ concurrency:
 jobs:
   build:
     name: Build and verify Android packages
+    # The integration PR has its own full native-core build workflow; avoid a duplicate scaffold build.
+    if: ${{ github.event_name != 'pull_request' || github.head_ref != 'integration/skyline-native-core' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
 
