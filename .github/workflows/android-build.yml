@@ -343,6 +343,36 @@ jobs:
             "ndk;25.0.8775105" \
             "cmake;3.22.1"
 
+      # Keep the upstream Kotlin/JNI namespace unchanged: libskyline.so exports
+      # Java_emu_skyline_* symbols. Only change the installable application ID
+      # and user-facing label so this fork can coexist with the original Skyline.
+      - name: Apply Skyline Dimm application identity
+        working-directory: reference/skyline
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("app/build.gradle")
+          source = path.read_text(encoding="utf-8")
+          replacements = {
+              'applicationId "skyline.emu"': 'applicationId "com.dimm.skyline"',
+              'versionCode 3': 'versionCode 70',
+              'versionName "0.0.3"': 'versionName "0.1.0-dimm"',
+              'manifestPlaceholders += [appLabel: "Skyline"]': 'manifestPlaceholders += [appLabel: "Skyline Dimm"]',
+          }
+          for old, new in replacements.items():
+              count = source.count(old)
+              if count != 1:
+                  raise SystemExit(f"Expected exactly one occurrence of {old!r}; found {count}")
+              source = source.replace(old, new, 1)
+          if 'namespace \'emu.skyline\'' not in source:
+              raise SystemExit("JNI namespace emu.skyline changed or missing; refusing unsafe package migration")
+          path.write_text(source, encoding="utf-8")
+          PY
+          grep -E 'namespace |applicationId |versionCode |versionName |appLabel' app/build.gradle
+
       - name: Build optimized Skyline reference release APK
         working-directory: reference/skyline
         shell: bash
@@ -356,11 +386,11 @@ jobs:
           test -n "$APK"
           test -s "$APK"
           mkdir -p "$GITHUB_WORKSPACE/reference-dist"
-          cp "$APK" "$GITHUB_WORKSPACE/reference-dist/Skyline-Reference-full-release.apk"
+          cp "$APK" "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.apk"
 
           AAPT="$ANDROID_HOME/build-tools/33.0.2/aapt"
           APKSIGNER="$ANDROID_HOME/build-tools/33.0.2/apksigner"
-          "$AAPT" dump badging "$GITHUB_WORKSPACE/reference-dist/Skyline-Reference-full-release.apk" > "$GITHUB_WORKSPACE/reference-dist/APK-METADATA.txt"
+          "$AAPT" dump badging "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.apk" > "$GITHUB_WORKSPACE/reference-dist/APK-METADATA.txt"
           "$APKSIGNER" verify --verbose "$GITHUB_WORKSPACE/reference-dist/Skyline-Reference-full-release.apk"
           unzip -l "$GITHUB_WORKSPACE/reference-dist/Skyline-Reference-full-release.apk" | grep -q 'lib/arm64-v8a/libskyline.so'
           if unzip -l "$GITHUB_WORKSPACE/reference-dist/Skyline-Reference-full-release.apk" | grep -q 'libVkLayer_khronos_validation.so'; then
