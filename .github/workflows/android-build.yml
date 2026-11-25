@@ -29,8 +29,8 @@ permissions:
   contents: write
 
 concurrency:
-  group: skyline-android-${{ github.ref }}
-  # Preserve main-branch builds/releases; only superseded PR runs may be cancelled.
+  # Keep every push/tag/dispatch run; only superseded runs for the same PR share a group.
+  group: skyline-android-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
