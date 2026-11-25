@@ -459,3 +459,4 @@ jobs:
           make_latest: true
 
 # Trigger the native reference build only on commits prefixed with build-reference-core:.
+# CI trigger audit: native build requests must use this exact commit-message prefix.
