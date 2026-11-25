@@ -88,6 +88,15 @@ Opção automática pelo GitHub:
 5. Informe a tag, por exemplo `v0.1.0`.
 6. Execute. O workflow compila, cria a tag caso ainda não exista e publica APK, AAB e checksums.
 
+### Executar a engenharia reversa do APK Edge 69
+
+1. Disponibilize o arquivo original `edge-69.apk` como asset de uma GitHub Release pública que você tenha autorização para usar.
+2. Copie a URL direta do asset (não a página HTML da Release).
+3. Em **Actions → Android CI and Release → Run workflow**, cole a URL no campo opcional `apk_url`.
+4. O pipeline executa a auditoria DEX/ELF e o JADX 1.5.7, gerando `edge69-audit.json` e `jadx-source.zip` nos artefatos da execução.
+
+O APK não é armazenado no repositório. A etapa de decompilação só é executada quando `apk_url` é preenchido.
+
 Também é possível criar e enviar uma tag Git manualmente:
 
 ```bash
