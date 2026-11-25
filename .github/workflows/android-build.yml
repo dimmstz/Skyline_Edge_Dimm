@@ -1,39 +1,56 @@
-name: Android Build
+name: Android CI and Release
 
 on:
   push:
-    branches: [ main ]
-    tags: [ 'v*' ]
+    branches:
+      - main
+    tags:
+      - "v*"
   pull_request:
   workflow_dispatch:
+    inputs:
+      publish_release:
+        description: "Create a GitHub Release and tag from this commit"
+        required: true
+        type: boolean
+        default: false
+      release_tag:
+        description: "Release tag (example: v0.1.0)"
+        required: false
+        type: string
+        default: "v0.1.0"
 
 permissions:
   contents: write
 
 concurrency:
-  group: android-${{ github.ref }}
+  group: skyline-android-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    name: Build and verify Android packages
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+
     steps:
-      - name: Checkout
+      - name: Checkout source
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: "17"
 
-      - name: Locate or install Android SDK command-line tools
+      - name: Locate or install Android command-line tools
         shell: bash
         run: |
           set -euo pipefail
           SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
           mkdir -p "$SDK/cmdline-tools"
           SDKMANAGER="$(find "$SDK/cmdline-tools" -type f -name sdkmanager 2>/dev/null | head -n 1 || true)"
+
           if [ -z "$SDKMANAGER" ]; then
             cd "$RUNNER_TEMP"
             curl --fail --location --retry 3 \
@@ -44,6 +61,7 @@ jobs:
             cp -a "$RUNNER_TEMP/android-cli-unpack/cmdline-tools/." "$SDK/cmdline-tools/latest/"
             SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"
           fi
+
           test -x "$SDKMANAGER"
           echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
           echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
@@ -51,12 +69,19 @@ jobs:
           echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
           echo "$SDK/platform-tools" >> "$GITHUB_PATH"
 
+      - name: Accept Android SDK licenses
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +o pipefail
+          yes | "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --licenses >/dev/null
+          set -o pipefail
+
       - name: Install Android SDK packages
         shell: bash
         run: |
           set -euo pipefail
-          yes | "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --licenses >/dev/null || true
-          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" \
+          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --install \
             "platform-tools" \
             "platforms;android-35" \
             "build-tools;35.0.0"
@@ -64,34 +89,66 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.9'
+          gradle-version: "8.9"
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
 
-      - name: Verify build environment
+      - name: Verify toolchain
+        shell: bash
         run: |
+          set -euo pipefail
           java -version
           "$SDKMANAGER" --version
           gradle --version
+          test -d "$ANDROID_HOME/platforms/android-35"
+          test -d "$ANDROID_HOME/build-tools/35.0.0"
 
-      - name: Build debug APK
-        run: gradle --no-daemon --stacktrace assembleDebug
+      - name: Run unit tests and build all variants
+        run: gradle --no-daemon --stacktrace clean testDebugUnitTest assembleDebug assembleRelease bundleRelease
 
-      - name: Build release APK and AAB
-        run: gradle --no-daemon --stacktrace assembleRelease bundleRelease
+      - name: Verify APK and AAB outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEBUG_APK="app/build/outputs/apk/debug/app-debug.apk"
+          RELEASE_APK="app/build/outputs/apk/release/app-release-unsigned.apk"
+          RELEASE_AAB="app/build/outputs/bundle/release/app-release.aab"
 
-      - name: Upload APK and AAB
+          for file in "$DEBUG_APK" "$RELEASE_APK" "$RELEASE_AAB"; do
+            test -s "$file"
+          done
+
+          mkdir -p dist
+          cp "$DEBUG_APK" dist/SkylineDimm-debug.apk
+          cp "$RELEASE_APK" dist/SkylineDimm-release-unsigned.apk
+          cp "$RELEASE_AAB" dist/SkylineDimm-release.aab
+
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$DEBUG_APK" >/dev/null
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$RELEASE_APK" >/dev/null
+          unzip -t "$RELEASE_AAB" >/dev/null
+          (
+            cd dist
+            sha256sum SkylineDimm-debug.apk SkylineDimm-release-unsigned.apk SkylineDimm-release.aab > SHA256SUMS.txt
+          )
+
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: skyline-dimm-android
-          path: |
-            app/build/outputs/apk/**/*.apk
-            app/build/outputs/bundle/**/*.aab
+          name: SkylineDimm-Android-${{ github.run_number }}
+          path: dist/*
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 30
 
       - name: Publish GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish_release)
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ inputs.release_tag || github.ref_name }}
+          target_commitish: ${{ github.sha }}
+          name: Skyline Dimm ${{ inputs.release_tag || github.ref_name }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
           files: |
-            app/build/outputs/apk/**/*.apk
-            app/build/outputs/bundle/**/*.aab
+            dist/SkylineDimm-debug.apk
+            dist/SkylineDimm-release-unsigned.apk
+            dist/SkylineDimm-release.aab
+            dist/SHA256SUMS.txt
