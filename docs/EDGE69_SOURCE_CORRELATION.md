@@ -55,3 +55,8 @@ Essa etapa serve para descobrir se o snapshot ainda compila em um runner atual e
 ## Limite atual
 
 O repositório `Skyline_Edge_Dimm` continua com uma tela de diagnóstico mínima. Nenhum núcleo de emulação foi integrado ainda. Os workflows #20 e #21 compilaram com sucesso o scaffold, mas não executaram testes de jogos.
+
+
+## CI validation update
+
+The isolated reference build now uses the runner-provided Android SDK command-line tools directly. This avoids the obsolete `tools` package request made by the setup action and installs only the pinned Android 33, NDK 25.0.8775105, and CMake 3.22.1 components required by this historical source tree.
