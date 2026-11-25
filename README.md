@@ -16,9 +16,9 @@ Projeto de reconstrução e estudo do aplicativo Skyline Edge 69 para Android. O
 - Min SDK: Android 6.0 (API 23); compile/target SDK: API 35.
 - JDK: 17; Gradle usado no CI: 8.9.
 
-A tela Kotlin atual é uma implementação nova de diagnóstico. Não é código original recuperado do APK. O bytecode DEX e o núcleo nativo ainda exigem decompilação, análise e integração.
+A tela Kotlin atual é uma implementação nova de diagnóstico. Não é código original recuperado do APK. Foi encontrada uma correspondência dos 19 pontos JNI exportados com a base pública Skyline; veja [a correlação de código-fonte](docs/EDGE69_SOURCE_CORRELATION.md). Essa base é antiga e ainda precisa ser compilada e validada antes da integração.
 
-Consulte [APK_REVERSE_ENGINEERING.md](APK_REVERSE_ENGINEERING.md) para os achados técnicos iniciais e [docs/EDGE69_REVERSE_ENGINEERING.md](docs/EDGE69_REVERSE_ENGINEERING.md) para o mapeamento verificado de classes DEX, JNI e biblioteca ELF. O script [tools/edge69_apk_audit.py](tools/edge69_apk_audit.py) reproduz a auditoria estrutural usando Python padrão.
+Consulte [APK_REVERSE_ENGINEERING.md](APK_REVERSE_ENGINEERING.md) para os achados técnicos iniciais, [docs/EDGE69_REVERSE_ENGINEERING.md](docs/EDGE69_REVERSE_ENGINEERING.md) para o mapeamento DEX/JNI/ELF e [docs/EDGE69_SOURCE_CORRELATION.md](docs/EDGE69_SOURCE_CORRELATION.md) para a comparação com a implementação pública. O script [tools/edge69_apk_audit.py](tools/edge69_apk_audit.py) reproduz a auditoria estrutural usando Python padrão.
 
 ## Downloads
 
