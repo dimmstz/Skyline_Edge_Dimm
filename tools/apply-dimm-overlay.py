@@ -40,6 +40,9 @@ def main() -> None:
     replace_exact(gradle, 'applicationId "skyline.emu"', 'applicationId "com.dimm.skyline"')
     replace_exact(gradle, "versionCode 3", "versionCode 4")
     replace_exact(gradle, 'versionName "0.0.3"', 'versionName "0.2.0-dimm"')
+    # The upstream project intentionally ships a debuggable release. Disable this
+    # for the Dimm candidate so the release APK is not debuggable.
+    replace_exact(gradle, 'release {\n            debuggable true', 'release {\n            debuggable false')
     replace_exact(
         gradle,
         'manifestPlaceholders += [appLabel: "Skyline"]',
@@ -58,10 +61,12 @@ def main() -> None:
 
     # Guard the JNI and device ABI contract against accidental overlay changes.
     gradle_text = gradle.read_text(encoding="utf-8")
-    if 'namespace \'emu.skyline\'' not in gradle_text:
+    if "namespace 'emu.skyline'" not in gradle_text:
         raise SystemExit("JNI namespace emu.skyline was unexpectedly changed.")
     if 'abiFilters "arm64-v8a"' not in gradle_text:
         raise SystemExit("Expected ARM64-only native ABI configuration was changed.")
+    if 'release {\n            debuggable false' not in gradle_text:
+        raise SystemExit("Release build must have debuggable=false.")
 
     print("Dimm identity overlay applied successfully.")
     print("Changed: app/build.gradle")
@@ -69,6 +74,7 @@ def main() -> None:
     print("Changed: app/src/main/java/emu/skyline/EmulationActivity.kt")
     print("Preserved JNI namespace: emu.skyline")
     print("Application ID: com.dimm.skyline")
+    print("Release debuggable: false")
 
 
 if __name__ == "__main__":
