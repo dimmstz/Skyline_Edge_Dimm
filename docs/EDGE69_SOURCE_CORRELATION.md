@@ -33,9 +33,15 @@ A árvore Kotlin também contém classes com os mesmos nomes e pacotes identific
 
 ## Riscos e compatibilidade
 
-O repositório [im030/skyline-emu](https://github.com/im030/skyline-emu) é um snapshot antigo: os metadados consultados indicam última atualização em maio de 2023. O projeto declara licença MPL-2.0. A árvore usa CMake/C++20, NDK 25.0.8775105, CMake 3.22.1 e vários submódulos Git (incluindo LLVM/libc++, Boost, Vulkan-Hpp, shader compiler, libadrenotools, áudio e outras bibliotecas).
+O repositório [im030/skyline-emu](https://github.com/im030/skyline-emu) é um snapshot antigo: a revisão fixada para validação é `35fb874a42cb548cbd3d66a00d65e4b2a4c1516b` (2 de maio de 2023). O projeto declara licença MPL-2.0. A árvore usa CMake/C++20, NDK 25.0.8775105, CMake 3.22.1 e vários submódulos Git (incluindo LLVM/libc++, Boost, Vulkan-Hpp, shader compiler, libadrenotools, áudio e outras bibliotecas).
 
 Por isso, não é seguro copiar somente `libskyline.so` ou apenas os três arquivos JNI. A integração exige a árvore nativa completa, os commits exatos dos submódulos, as classes Kotlin correspondentes, recursos/manifesto e configuração de build compatível. O snapshot deve ser compilado isoladamente antes de qualquer migração para o app Dimm.
+
+## Validação de build isolada
+
+O workflow do Skyline Dimm ganhou a entrada manual opcional `build_reference_core`. Ao ativá-la em **Actions → Android CI and Release → Run workflow**, o CI baixa a revisão fixa acima com os submódulos recursivos, instala JDK 17, Android API 33, NDK 25.0.8775105 e CMake 3.22.1, e tenta compilar `:app:assembleFullDebug`. Se a compilação passar, publica o APK de referência no artefato separado `Skyline-Reference-Core-APK`; não cria Release e não altera o app Dimm.
+
+Essa etapa serve para descobrir se o snapshot ainda compila em um runner atual e gerar um APK-base para teste. Ainda não é a integração do núcleo no pacote `com.dimm.skyline`.
 
 ## Próximas etapas verificáveis
 
