@@ -1,0 +1,16 @@
+{
+  "source_apk": "edge-69.apk",
+  "sha256": "354b06220688bd1a8cfe8cece607b2005e09f892f2cc49070edbe3ae46404ae",
+  "apk_size_bytes": 27103127,
+  "zip_entry_count": 1544,
+  "dex_files": ["classes.dex"],
+  "native_libraries": [
+    "lib/arm64-v8a/libgsl_alloc_hook.so",
+    "lib/arm64-v8a/libmain_hook.so",
+    "lib/arm64-v8a/libfile_redirect_hook.so",
+    "lib/arm64-v8a/libhook_impl.so",
+    "lib/arm64-v8a/librenderscript-toolkit.so",
+    "lib/arm64-v8a/libskyline.so"
+  ],
+  "recovery_status": "APK entries extracted; DEX/native source decompilation not completed. Kotlin activity is a new reconstruction shell, not recovered source."
+}
