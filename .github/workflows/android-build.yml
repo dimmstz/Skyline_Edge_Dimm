@@ -261,9 +261,21 @@ jobs:
         with:
           repository: im030/skyline-emu
           ref: 35fb874a42cb548cbd3d66a00d65e4b2a4c1516b
-          submodules: recursive
+          submodules: false
           fetch-depth: 1
           path: reference/skyline
+
+      # The historical upstream URLs for these two dependencies were removed.
+      # Use maintained public mirrors while preserving the exact gitlink commits.
+      - name: Restore unavailable historical submodule mirrors
+        working-directory: reference/skyline
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config -f .gitmodules submodule.Sirit.url https://github.com/yuzu-mirror/sirit
+          git config -f .gitmodules 'submodule.Shader Compiler.url' https://github.com/strato-emu/shader-compiler
+          git submodule sync --recursive
+          git submodule update --init --recursive --depth=1
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
