@@ -92,6 +92,29 @@ jobs:
           gradle-version: "8.9"
           cache-read-only: ${{ github.event_name == 'pull_request' }}
 
+      - name: Configure release signing (optional)
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$ANDROID_STORE_PASSWORD"
+          test -n "$ANDROID_KEY_ALIAS"
+          test -n "$ANDROID_KEY_PASSWORD"
+          KEYSTORE_PATH="$RUNNER_TEMP/skyline-release.jks"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          test -s "$KEYSTORE_PATH"
+          {
+            echo "ANDROID_KEYSTORE_PATH=$KEYSTORE_PATH"
+            echo "ANDROID_STORE_PASSWORD=$ANDROID_STORE_PASSWORD"
+            echo "ANDROID_KEY_ALIAS=$ANDROID_KEY_ALIAS"
+            echo "ANDROID_KEY_PASSWORD=$ANDROID_KEY_PASSWORD"
+          } >> "$GITHUB_ENV"
+
       - name: Verify toolchain
         shell: bash
         run: |
@@ -119,15 +142,23 @@ jobs:
 
           mkdir -p dist
           cp "$DEBUG_APK" dist/SkylineDimm-debug.apk
-          cp "$RELEASE_APK" dist/SkylineDimm-release-unsigned.apk
+          cp "$RELEASE_APK" dist/SkylineDimm-release.apk
           cp "$RELEASE_AAB" dist/SkylineDimm-release.aab
 
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$DEBUG_APK" >/dev/null
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$RELEASE_APK" >/dev/null
           unzip -t "$RELEASE_AAB" >/dev/null
+
+          if [ -n "${ANDROID_KEYSTORE_PATH:-}" ]; then
+            "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose dist/SkylineDimm-release.apk
+            printf '%s\\n' "Release APK/AAB signed with configured repository secrets." > dist/SIGNING_STATUS.txt
+          else
+            printf '%s\\n' "Release APK/AAB are unsigned. Install the signed debug APK for local testing, or configure the four signing secrets." > dist/SIGNING_STATUS.txt
+          fi
+
           (
             cd dist
-            sha256sum SkylineDimm-debug.apk SkylineDimm-release-unsigned.apk SkylineDimm-release.aab > SHA256SUMS.txt
+            sha256sum SkylineDimm-debug.apk SkylineDimm-release.apk SkylineDimm-release.aab SIGNING_STATUS.txt > SHA256SUMS.txt
           )
 
       - name: Upload build artifacts
