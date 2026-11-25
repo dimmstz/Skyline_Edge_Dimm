@@ -27,17 +27,17 @@ class MainActivity : Activity() {
         }
         addText("SKYLINE DIMM", 26f, 0xFFFFFFFF.toInt(), true)
         addText("Base de reconstrução Android do Edge 69", 14f, 0xFFB8C1CC.toInt())
-        addText("Estado: extração concluída; engenharia reversa pendente", 16f, 0xFF80CBC4.toInt(), true)
+        addText("Estado: ponte JNI correlacionada; núcleo ainda não integrado", 16f, 0xFF80CBC4.toInt(), true)
         addText(
             "O APK original contém DEX e bibliotecas nativas compiladas. Esta tela é uma base nova e não representa o código-fonte original recuperado.",
             14f, 0xFFE0E5EB.toInt()
         )
         addText("Próximas etapas", 18f, 0xFFFFFFFF.toInt(), true)
         addText(
-            "1. Decompilar classes.dex e mapear classes/pacotes.\n" +
-                "2. Decodificar Manifest e recursos.\n" +
-                "3. Identificar interfaces JNI e dependências nativas.\n" +
-                "4. Reintegrar módulos e validar no dispositivo.",
+            "1. Validar a base Skyline pública e seus submódulos.\n" +
+                "2. Comparar as classes Android com o Edge 69.\n" +
+                "3. Integrar o núcleo C++/Vulkan e a ponte JNI.\n" +
+                "4. Testar inicialização e jogos no Galaxy M23.",
             14f, 0xFFB8C1CC.toInt()
         )
         setContentView(ScrollView(this).apply { addView(content) })
