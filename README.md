@@ -97,6 +97,8 @@ git push origin v0.1.0
 
 O push da tag dispara o pipeline e publica os arquivos na Release correspondente.
 
+Para solicitar uma versão a partir de um commit na branch `main`, use a mensagem de commit no formato `release: v0.1.0`. Após a build e as validações, o workflow cria a tag e a GitHub Release automaticamente. A versão deve seguir o padrão semântico `vMAJOR.MINOR.PATCH`.
+
 ### Assinatura estável para releases (recomendado)
 
 Para distribuir atualizações instaláveis sobre versões anteriores ou publicar na Play Store, configure os seguintes **GitHub Actions Secrets** em **Settings → Secrets and variables → Actions**:
