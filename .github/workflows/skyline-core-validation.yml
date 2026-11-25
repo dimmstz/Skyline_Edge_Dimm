@@ -112,6 +112,10 @@ jobs:
           "$AAPT" dump badging "$APK" > "$RUNNER_TEMP/skyline-dimm-apk-metadata.txt"
           grep -F "package: name='com.dimm.skyline'" "$RUNNER_TEMP/skyline-dimm-apk-metadata.txt"
           grep -F "versionName='0.2.0-dimm'" "$RUNNER_TEMP/skyline-dimm-apk-metadata.txt"
+          if grep -Fq "application-debuggable" "$RUNNER_TEMP/skyline-dimm-apk-metadata.txt"; then
+            echo "Release APK is debuggable; refusing to publish candidate."
+            exit 1
+          fi
           "$APKSIGNER" verify --verbose "$APK"
           unzip -l "$APK" | grep -q 'lib/arm64-v8a/libskyline.so'
           if unzip -l "$APK" | grep -q 'libVkLayer_khronos_validation.so'; then
