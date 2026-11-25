@@ -140,6 +140,17 @@ jobs:
           python3 tools/edge69_apk_audit.py "$RUNNER_TEMP/edge-69.apk" --output dist/reverse-engineering/edge69-audit.json
           test -s dist/reverse-engineering/edge69-audit.json
 
+          # JADX recovers reviewable Java-like source from DEX; it does not restore original Kotlin/C++.
+          curl --fail --location --retry 3 --retry-all-errors \
+            https://github.com/skylot/jadx/releases/download/v1.5.7/jadx-1.5.7.zip \
+            --output "$RUNNER_TEMP/jadx.zip"
+          mkdir -p "$RUNNER_TEMP/jadx"
+          unzip -q "$RUNNER_TEMP/jadx.zip" -d "$RUNNER_TEMP/jadx"
+          "$RUNNER_TEMP/jadx/bin/jadx" --no-res --show-bad-code \
+            -d dist/reverse-engineering/jadx-source "$RUNNER_TEMP/edge-69.apk"
+          test -d dist/reverse-engineering/jadx-source/sources
+          (cd dist/reverse-engineering && zip -qr jadx-source.zip jadx-source)
+
       - name: Verify toolchain
         shell: bash
         run: |
