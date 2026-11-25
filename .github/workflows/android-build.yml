@@ -16,61 +16,60 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
-    env:
-      ANDROID_HOME: ${{ runner.temp }}/android-sdk
-      ANDROID_SDK_ROOT: ${{ runner.temp }}/android-sdk
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Install Android command-line tools
+      - name: Locate or install Android SDK command-line tools
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "$ANDROID_HOME/cmdline-tools"
-          curl --fail --location --retry 3 \
-            https://dl.google.com/android/repository/commandlinetools-linux-12266719_latest.zip \
-            --output "$RUNNER_TEMP/android-commandline-tools.zip"
-          mkdir -p "$RUNNER_TEMP/android-cli-unpack"
-          unzip -q "$RUNNER_TEMP/android-commandline-tools.zip" -d "$RUNNER_TEMP/android-cli-unpack"
-          mv "$RUNNER_TEMP/android-cli-unpack/cmdline-tools" "$ANDROID_HOME/cmdline-tools/latest"
-          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
-          echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
-          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
-          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
-
-      - name: Accept Android SDK licenses
-        shell: bash
-        run: |
-          set -euo pipefail
-          yes | sdkmanager --sdk_root="$ANDROID_HOME" --licenses >/dev/null
+          SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          mkdir -p "$SDK/cmdline-tools"
+          SDKMANAGER="$(find "$SDK/cmdline-tools" -type f -name sdkmanager 2>/dev/null | head -n 1 || true)"
+          if [ -z "$SDKMANAGER" ]; then
+            cd "$RUNNER_TEMP"
+            curl --fail --location --retry 3 \
+              https://dl.google.com/android/repository/commandlinetools-linux-12266719_latest.zip \
+              --output android-command-line-tools.zip
+            mkdir -p "$RUNNER_TEMP/android-cli-unpack" "$SDK/cmdline-tools/latest"
+            unzip -q android-command-line-tools.zip -d "$RUNNER_TEMP/android-cli-unpack"
+            cp -a "$RUNNER_TEMP/android-cli-unpack/cmdline-tools/." "$SDK/cmdline-tools/latest/"
+            SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"
+          fi
+          test -x "$SDKMANAGER"
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          echo "SDKMANAGER=$SDKMANAGER" >> "$GITHUB_ENV"
+          echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
+          echo "$SDK/platform-tools" >> "$GITHUB_PATH"
 
       - name: Install Android SDK packages
         shell: bash
         run: |
           set -euo pipefail
-          sdkmanager --sdk_root="$ANDROID_HOME" --install \
+          yes | "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --licenses >/dev/null || true
+          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" \
             "platform-tools" \
             "platforms;android-35" \
             "build-tools;35.0.0"
-          sdkmanager --sdk_root="$ANDROID_HOME" --list_installed
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
 
-      - name: Verify Android and Java environment
+      - name: Verify build environment
         run: |
           java -version
-          sdkmanager --version
+          "$SDKMANAGER" --version
           gradle --version
 
       - name: Build debug APK
