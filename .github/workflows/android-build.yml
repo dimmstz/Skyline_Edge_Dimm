@@ -19,13 +19,19 @@ on:
         required: false
         type: string
         default: "v0.1.0"
+      apk_url:
+        description: "Optional public GitHub release URL for edge-69.apk to run static DEX/ELF analysis"
+        required: false
+        type: string
+        default: ""
 
 permissions:
   contents: write
 
 concurrency:
   group: skyline-android-${{ github.ref }}
-  cancel-in-progress: true
+  # Preserve main-branch builds/releases; only superseded PR runs may be cancelled.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
@@ -118,6 +124,22 @@ jobs:
             echo "ANDROID_KEY_PASSWORD=$ANDROID_KEY_PASSWORD"
           } >> "$GITHUB_ENV"
 
+      - name: Analyze reference APK (optional)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.apk_url != '' }}
+        shell: bash
+        env:
+          APK_URL: ${{ inputs.apk_url }}
+        run: |
+          set -euo pipefail
+          case "$APK_URL" in
+            https://github.com/*|https://objects.githubusercontent.com/*|https://release-assets.githubusercontent.com/*) ;;
+            *) echo "APK URL must be a GitHub release asset URL."; exit 1 ;;
+          esac
+          mkdir -p dist/reverse-engineering
+          curl --fail --location --retry 3 --retry-all-errors "$APK_URL" --output "$RUNNER_TEMP/edge-69.apk"
+          python3 tools/edge69_apk_audit.py "$RUNNER_TEMP/edge-69.apk" --output dist/reverse-engineering/edge69-audit.json
+          test -s dist/reverse-engineering/edge69-audit.json
+
       - name: Verify toolchain
         shell: bash
         run: |
@@ -169,7 +191,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: SkylineDimm-Android-${{ github.run_number }}
-          path: dist/*
+          path: dist/
           if-no-files-found: error
           retention-days: 30
 
