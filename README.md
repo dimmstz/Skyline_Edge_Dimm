@@ -18,7 +18,7 @@ Projeto de reconstrução e estudo do aplicativo Skyline Edge 69 para Android. O
 
 A tela Kotlin atual é uma implementação nova de diagnóstico. Não é código original recuperado do APK. O bytecode DEX e o núcleo nativo ainda exigem decompilação, análise e integração.
 
-Consulte [APK_REVERSE_ENGINEERING.md](APK_REVERSE_ENGINEERING.md) para os achados técnicos e limites da extração.
+Consulte [APK_REVERSE_ENGINEERING.md](APK_REVERSE_ENGINEERING.md) para os achados técnicos iniciais e [docs/EDGE69_REVERSE_ENGINEERING.md](docs/EDGE69_REVERSE_ENGINEERING.md) para o mapeamento verificado de classes DEX, JNI e biblioteca ELF. O script [tools/edge69_apk_audit.py](tools/edge69_apk_audit.py) reproduz a auditoria estrutural usando Python padrão.
 
 ## Downloads
 
@@ -75,7 +75,7 @@ Etapas do pipeline:
 7. Validação dos arquivos, Manifest, estrutura AAB e assinatura quando habilitada.
 8. Geração dos hashes SHA-256.
 9. Upload dos artefatos.
-10. Publicação de GitHub Release quando executado por uma tag `v*` ou quando solicitado no disparo manual.
+10. Publicação de GitHub Release quando executado por uma tag `v*` ou quando solicitado no disparo manual.\n11. Auditoria opcional do APK Edge 69 quando a execução manual recebe `apk_url`; o JSON é anexado aos artefatos.
 
 ### Criar uma tag e uma Release
 
@@ -140,7 +140,7 @@ Nunca coloque keystore, senhas ou chaves privadas no Git. Sem esses quatro secre
 3. Mapear JNI, símbolos e dependências de `libskyline.so`.
 4. Comparar os componentes com fontes Skyline compatíveis e respeitar suas licenças.
 5. Reintegrar módulos progressivamente.
-6. Validar inicialização, drivers gráficos e execução de jogos em hardware ARM64 real.
+6. Concluir a decompilação de bytecode e análise da biblioteca nativa stripped.\n7. Integrar o núcleo real ao app Android (Kotlin/JNI/C++/Vulkan), substituindo o scaffold atual.\n8. Validar inicialização, drivers gráficos, FPS sustentado, frametime, temperatura e execução de jogos no Galaxy M23.
 
 ## Licenças e atribuições
 
