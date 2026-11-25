@@ -27,13 +27,13 @@ def ensure_default_string(path: Path, name: str, value: str) -> None:
         raise SystemExit(f"Required Android strings file is missing: {path}")
     source = path.read_text(encoding="utf-8")
     import re
-    pattern = rf'<string\\s+name="{re.escape(name)}"'
+    pattern = rf'<string\s+name="{re.escape(name)}"'
     if re.search(pattern, source):
         return
     closing = "</resources>"
     if source.count(closing) != 1:
         raise SystemExit(f"Could not safely locate resources closing tag in {path}")
-    entry = f'    <string name="{name}">{value}</string>\\n'
+    entry = f'    <string name="{name}">{value}</string>\n'
     path.write_text(source.replace(closing, entry + closing, 1), encoding="utf-8")
 
 
