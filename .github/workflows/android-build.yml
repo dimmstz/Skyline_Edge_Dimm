@@ -313,24 +313,37 @@ jobs:
             "ndk;25.0.8775105" \
             "cmake;3.22.1"
 
-      - name: Build original Skyline reference APK
+      - name: Build optimized Skyline reference release APK
         working-directory: reference/skyline
         shell: bash
         run: |
           set -euo pipefail
           chmod +x ./gradlew
-          ./gradlew --no-daemon --stacktrace --max-workers=2 :app:assembleFullDebug
-          APK="app/build/outputs/apk/full/debug/app-full-debug.apk"
+          # Release compiles the native core with CMAKE_BUILD_TYPE=RELEASE and
+          # excludes the large Vulkan validation-layer libraries used by Debug.
+          ./gradlew --no-daemon --stacktrace --max-workers=2 :app:assembleFullRelease
+          APK="$(find app/build/outputs/apk/full/release -maxdepth 1 -type f -name '*.apk' -print -quit)"
+          test -n "$APK"
           test -s "$APK"
           mkdir -p "$GITHUB_WORKSPACE/reference-dist"
-          cp "$APK" "$GITHUB_WORKSPACE/reference-dist/Skyline-Reference-full-debug.apk"
-          sha256sum "$GITHUB_WORKSPACE/reference-dist/Skyline-Reference-full-debug.apk" \
+          cp "$APK" "$GITHUB_WORKSPACE/reference-dist/Skyline-Reference-full-release.apk"
+
+          AAPT="$ANDROID_HOME/build-tools/33.0.2/aapt"
+          APKSIGNER="$ANDROID_HOME/build-tools/33.0.2/apksigner"
+          "$AAPT" dump badging "$GITHUB_WORKSPACE/reference-dist/Skyline-Reference-full-release.apk" > "$GITHUB_WORKSPACE/reference-dist/APK-METADATA.txt"
+          "$APKSIGNER" verify --verbose "$GITHUB_WORKSPACE/reference-dist/Skyline-Reference-full-release.apk"
+          unzip -l "$GITHUB_WORKSPACE/reference-dist/Skyline-Reference-full-release.apk" | grep -q 'lib/arm64-v8a/libskyline.so'
+          if unzip -l "$GITHUB_WORKSPACE/reference-dist/Skyline-Reference-full-release.apk" | grep -q 'libVkLayer_khronos_validation.so'; then
+            echo "Unexpected Vulkan validation layer in optimized release APK."
+            exit 1
+          fi
+          sha256sum "$GITHUB_WORKSPACE/reference-dist/Skyline-Reference-full-release.apk" \
             > "$GITHUB_WORKSPACE/reference-dist/SHA256SUMS.txt"
 
-      - name: Upload reference emulator APK
+      - name: Upload optimized reference emulator APK
         uses: actions/upload-artifact@v4
         with:
-          name: Skyline-Reference-Core-APK
+          name: Skyline-Reference-Core-Release-APK
           path: reference-dist/
           if-no-files-found: error
           retention-days: 30
