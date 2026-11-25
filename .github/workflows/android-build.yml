@@ -457,3 +457,5 @@ jobs:
           fail_on_unmatched_files: true
           generate_release_notes: true
           make_latest: true
+
+# Trigger the native reference build only on commits prefixed with build-reference-core:.
