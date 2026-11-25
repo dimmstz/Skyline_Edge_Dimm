@@ -277,6 +277,7 @@ jobs:
           git submodule sync --recursive
           git submodule update --init --recursive --depth=1
 
+      # Native reference build fix: resolve the pinned Hilt plugin from Google's Maven.
       # The pinned upstream settings.gradle only includes :app. Its root
       # build.gradle declares Hilt through the plugins DSL, so Gradle needs
       # Google's Maven repository in pluginManagement (not only dependencies).
