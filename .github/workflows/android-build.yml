@@ -93,7 +93,6 @@ jobs:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
 
       - name: Configure release signing (optional)
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
         shell: bash
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -102,6 +101,10 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           set -euo pipefail
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "Release signing secrets not configured; release outputs will be unsigned."
+            exit 0
+          fi
           test -n "$ANDROID_STORE_PASSWORD"
           test -n "$ANDROID_KEY_ALIAS"
           test -n "$ANDROID_KEY_PASSWORD"
@@ -133,12 +136,13 @@ jobs:
         run: |
           set -euo pipefail
           DEBUG_APK="app/build/outputs/apk/debug/app-debug.apk"
-          RELEASE_APK="app/build/outputs/apk/release/app-release-unsigned.apk"
+          RELEASE_APK="$(find app/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' -print -quit)"
           RELEASE_AAB="app/build/outputs/bundle/release/app-release.aab"
 
-          for file in "$DEBUG_APK" "$RELEASE_APK" "$RELEASE_AAB"; do
-            test -s "$file"
-          done
+          test -s "$DEBUG_APK"
+          test -n "$RELEASE_APK"
+          test -s "$RELEASE_APK"
+          test -s "$RELEASE_AAB"
 
           mkdir -p dist
           cp "$DEBUG_APK" dist/SkylineDimm-debug.apk
@@ -180,6 +184,6 @@ jobs:
           fail_on_unmatched_files: true
           files: |
             dist/SkylineDimm-debug.apk
-            dist/SkylineDimm-release-unsigned.apk
+            dist/SkylineDimm-release.apk
             dist/SkylineDimm-release.aab
             dist/SHA256SUMS.txt
