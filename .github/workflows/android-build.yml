@@ -397,8 +397,10 @@ jobs:
             echo "Unexpected Vulkan validation layer in optimized release APK."
             exit 1
           fi
-          sha256sum "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.apk" \
-            > "$GITHUB_WORKSPACE/reference-dist/SHA256SUMS.txt"
+          (
+            cd "$GITHUB_WORKSPACE/reference-dist"
+            sha256sum SkylineDimm-M23-ARM64.apk > SHA256SUMS.txt
+          )
 
       - name: Upload optimized reference emulator APK
         uses: actions/upload-artifact@v4
