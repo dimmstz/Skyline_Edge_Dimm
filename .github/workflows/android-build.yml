@@ -233,7 +233,7 @@ jobs:
           echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
 
       - name: Publish GitHub Release
-        if: steps.release_meta.outputs.tag_name != ''
+        if: ${{ false }} # Never publish the small diagnostic APK/AAB as the emulator release; native job publishes the verified full APK.
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.release_meta.outputs.tag_name }}
@@ -251,7 +251,7 @@ jobs:
 
   reference-core-build:
     name: Build pinned Skyline reference core (optional)
-    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.build_reference_core) || (github.event_name == 'push' && github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, 'build-reference-core:')) }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.build_reference_core) || (github.event_name == 'push' && github.ref == 'refs/heads/main') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
@@ -412,7 +412,7 @@ jobs:
   publish-reference-release:
     name: Attach native Skyline APK to this build's Release
     needs: [build, reference-core-build]
-    if: ${{ success() && ((github.event_name == 'push' && github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, 'build-reference-core:')) || (github.event_name == 'workflow_dispatch' && inputs.build_reference_core)) }}
+    if: ${{ success() && ((github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.build_reference_core)) }}
     runs-on: ubuntu-24.04
     steps:
       - name: Download verified native APK
