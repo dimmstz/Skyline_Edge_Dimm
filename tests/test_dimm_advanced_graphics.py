@@ -49,6 +49,12 @@ checks = {
                                            ["Pixel Composite(", "destination = p.a >= 1023 ? p : Composite(p, destination)"]),
     "Dimm package identity": ("app/build.gradle",
                               ['applicationId "com.dimm.skyline"', f"versionCode {VERSION_CODE}", f'versionName "{VERSION_NAME}"']),
+    "Three-column phone game library": ("app/src/main/java/org/stratoemu/strato/MainActivity.kt",
+                                         ["if (widthDp < 600f) 3", "coerceAtLeast(3)"]),
+    "Compact standard game covers": ("app/src/main/res/layout/app_item_grid.xml",
+                                     ['android:layout_height="112dp"', 'android:textSize="11sp"', 'android:layout_margin="3dp"']),
+    "Compact overlay game covers": ("app/src/main/res/layout/app_item_grid_compact.xml",
+                                    ['android:layout_height="112dp"', 'android:layout_height="match_parent"', 'android:layout_margin="3dp"']),
 }
 
 for label, (path, needles) in checks.items():
