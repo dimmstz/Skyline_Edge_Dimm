@@ -321,7 +321,7 @@ jobs:
           set +o pipefail
           yes | "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --licenses >/dev/null
           set -o pipefail
-          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --install "platform-tools" "platforms;android-34" "build-tools;34.0.0" "ndk;26.1.10909125" "cmake;3.22.1"
+          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --install "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;26.1.10909125" "cmake;3.22.1"
 
       - name: Configure Android release signing
         id: signing
@@ -382,8 +382,8 @@ jobs:
           test -s "$APK"
           mkdir -p "$GITHUB_WORKSPACE/reference-dist"
           cp "$APK" "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.apk"
-          AAPT="$ANDROID_HOME/build-tools/34.0.0/aapt"
-          APKSIGNER="$ANDROID_HOME/build-tools/34.0.0/apksigner"
+          AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
+          APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
           "$AAPT" dump badging "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.apk" > "$GITHUB_WORKSPACE/reference-dist/APK-METADATA.txt"
           grep -q "package: name='com.dimm.skyline'" "$GITHUB_WORKSPACE/reference-dist/APK-METADATA.txt"
           grep -q "versionCode='${{ steps.version.outputs.version_code }}'" "$GITHUB_WORKSPACE/reference-dist/APK-METADATA.txt"
