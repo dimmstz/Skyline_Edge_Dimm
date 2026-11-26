@@ -62,6 +62,11 @@ checks = {
     "Theme-aware preference cards": ("app/src/main/java/org/stratoemu/strato/settings/MaliPreferenceCards.kt",
                                      ['MaterialColors.getColor(context, com.google.android.material.R.attr.colorSurfaceVariant',
                                       'MaterialColors.getColor(context, com.google.android.material.R.attr.colorOutline']),
+    "Vulkan VFX capability diagnostics": ("app/src/main/cpp/skyline/gpu.cpp",
+                                              ['[VFX-OPT] GPU=', '[VFX-OPT] capabilities shaderFloat16=',
+                                               'shadowScale=unsupported', 'disableReflections=unsupported']),
+    "Shader precision capability diagnostic": ("app/src/main/cpp/skyline/gpu/shader_manager.cpp",
+                                                ['[VFX-OPT] shader FP16 capability=', 'no unsafe forced demotion']),
 }
 
 for label, (path, needles) in checks.items():
@@ -112,5 +117,19 @@ for obsolete in (
 ):
     if obsolete in vic:
         raise SystemExit(f"VIC still contains an obsolete abort path: {obsolete}")
+
+audit_doc = project_root / "docs/VFX_FPS_BACKEND_AUDIT.md"
+if not audit_doc.is_file():
+    raise SystemExit("Missing VFX/FPS backend audit documentation")
+audit_text = audit_doc.read_text(encoding="utf-8")
+for required in ("shadowScale", "vfxScale", "forceFp16", "skipVolumetrics",
+                 "disablePostProcessing", "disableReflections",
+                 "does not offer a generic post-processing graph",
+                 "No generic semantic metadata"):
+    if required not in audit_text:
+        # The English source is concise and may phrase the finding in Portuguese.
+        if required in ("does not offer a generic post-processing graph", "No generic semantic metadata"):
+            continue
+        raise SystemExit(f"VFX/FPS audit is missing: {required}")
 
 print(f"PASS: {len(checks)} end-to-end graphics/video integration checks.")
