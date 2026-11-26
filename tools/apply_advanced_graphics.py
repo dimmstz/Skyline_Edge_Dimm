@@ -24,9 +24,9 @@ def edit(relative: str, replacements: list[tuple[str, str]]) -> None:
 edit("app/build.gradle", [
     ('applicationId "com.lukevalen.stratomali"', 'applicationId "com.dimm.skyline"'),
     ("buildConfigField 'String', 'RELEASE_VERSION', '\"0.0.4-1\"'",
-     "buildConfigField 'String', 'RELEASE_VERSION', '\"0.1.58-advanced\"'"),
-    ("versionCode getGitVersionCode()", "versionCode 72"),
-    ('versionName "0.0.4-1"', 'versionName "0.1.58-advanced"'),
+     "buildConfigField 'String', 'RELEASE_VERSION', '\"0.1.59-advanced\"'"),
+    ("versionCode getGitVersionCode()", "versionCode 73"),
+    ('versionName "0.0.4-1"', 'versionName "0.1.59-advanced"'),
 ])
 
 edit("app/src/main/res/values/strings.xml", [
@@ -135,15 +135,23 @@ resources.write_text("""<?xml version="1.0" encoding="utf-8"?>
     <string name="mipmap_lod_bias_desc">Positive values select lower-resolution mip levels at distance and can reduce texture bandwidth. Negative values sharpen distant textures but may cause shimmering. Restart the game after changing.</string>
     <string-array name="mipmap_lod_bias_entries" translatable="false">
         <item>-1.00 (sharper)</item>
+        <item>-0.75</item>
         <item>-0.50</item>
+        <item>-0.25</item>
         <item>0 (game default)</item>
+        <item>+0.25</item>
         <item>+0.50</item>
+        <item>+0.75</item>
         <item>+1.00</item>
+        <item>+1.25</item>
         <item>+1.50</item>
+        <item>+1.75</item>
         <item>+2.00 (more blur)</item>
     </string-array>
     <integer-array name="mipmap_lod_bias_values">
-        <item>-4</item><item>-2</item><item>0</item><item>2</item><item>4</item><item>6</item><item>8</item>
+        <item>-4</item><item>-3</item><item>-2</item><item>-1</item><item>0</item>
+        <item>1</item><item>2</item><item>3</item><item>4</item><item>5</item>
+        <item>6</item><item>7</item><item>8</item>
     </integer-array>
     <string name="max_anisotropy">Anisotropic filtering override</string>
     <string name="max_anisotropy_desc">Overrides game-provided texture anisotropy when supported by the GPU. Higher values can improve angled surfaces but may cost performance. Restart the game after changing.</string>

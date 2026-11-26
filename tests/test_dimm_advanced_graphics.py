@@ -23,9 +23,12 @@ checks = {
     "Native settings storage": ("app/src/main/cpp/skyline/common/settings.h",
                                 ["Setting<int> mipmapLodBias", "Setting<int> maxAnisotropy"]),
     "Vulkan sampler LOD bias": ("app/src/main/cpp/skyline/gpu/interconnect/common/samplers.cpp",
-                                ["ctx.gpu.MipmapLodBias()", "deviceLimits.maxSamplerLodBias", ".mipLodBias = mipLodBias"]),
+                                ["ctx.gpu.MipmapLodBias()", "deviceLimits.maxSamplerLodBias",
+                                 "static_cast<float>(ctx.gpu.MipmapLodBias()) * 0.25f",
+                                 "std::clamp", ".mipLodBias = mipLodBias"]),
     "Vulkan anisotropy override": ("app/src/main/cpp/skyline/gpu/interconnect/common/samplers.cpp",
-                                   ["ctx.gpu.MaxAnisotropy()", "deviceLimits.maxSamplerAnisotropy"]),
+                                   ["ctx.gpu.MaxAnisotropy()", "deviceLimits.maxSamplerAnisotropy",
+                                    "std::min(static_cast<float>(requestedAnisotropy)"]),
     "Resolution and texture UI": ("app/src/main/res/xml/emulation_preferences.xml",
                                   ['app:key="mipmap_lod_bias"', 'app:key="max_anisotropy"', 'app:key="resolution_scale"']),
     "GPU settings section visibility": ("app/src/main/java/org/stratoemu/strato/settings/GlobalSettingsFragment.kt",
@@ -35,7 +38,7 @@ checks = {
     "VIC multi-layer and alpha handling": ("app/src/main/cpp/skyline/soc/host1x/video/video_core/host1x/vic_processor.cpp",
                                            ["Pixel Composite(", "destination = p.a >= 1023 ? p : Composite(p, destination)"]),
     "Dimm package identity": ("app/build.gradle",
-                              ['applicationId "com.dimm.skyline"', 'versionCode 72', 'versionName "0.1.58-advanced"']),
+                              ['applicationId "com.dimm.skyline"', 'versionCode 73', 'versionName "0.1.59-advanced"']),
 }
 
 for label, (path, needles) in checks.items():
@@ -43,6 +46,12 @@ for label, (path, needles) in checks.items():
     missing = [needle for needle in needles if needle not in source]
     if missing:
         raise SystemExit(f"{label}: missing expected implementation: {missing}")
+
+resources = read("app/src/main/res/values/dimm_advanced_graphics.xml")
+if resources.count("<item>") < 26:
+    raise SystemExit("Advanced graphics resource arrays are incomplete")
+if not all(f"<item>{v}</item>" in resources for v in (-4,-3,-2,-1,0,1,2,3,4,5,6,7,8)):
+    raise SystemExit("Mipmap LOD quarter-step values are incomplete")
 
 vic = read("app/src/main/cpp/skyline/soc/host1x/video/video_core/host1x/vic_processor.cpp")
 for obsolete in (

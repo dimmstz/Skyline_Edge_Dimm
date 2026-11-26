@@ -379,7 +379,7 @@ jobs:
           "$AAPT" dump badging "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.apk" > "$GITHUB_WORKSPACE/reference-dist/APK-METADATA.txt"
           grep -q "package: name='com.dimm.skyline'" "$GITHUB_WORKSPACE/reference-dist/APK-METADATA.txt"
           grep -q "versionCode='72'" "$GITHUB_WORKSPACE/reference-dist/APK-METADATA.txt"
-          grep -q "versionName='0.1.58-advanced'" "$GITHUB_WORKSPACE/reference-dist/APK-METADATA.txt"
+          grep -q "versionName='0.1.59-advanced'" "$GITHUB_WORKSPACE/reference-dist/APK-METADATA.txt"
           "$APKSIGNER" verify --verbose "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.apk"
           unzip -l "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.apk" | grep -q 'lib/arm64-v8a/libskyline.so'
           (
@@ -418,7 +418,7 @@ jobs:
           test -s release-assets/BUILD-INFO.txt
           grep -q "package: name='com.dimm.skyline'" release-assets/APK-METADATA.txt
           grep -q "versionCode='72'" release-assets/APK-METADATA.txt
-          grep -q "versionName='0.1.58-advanced'" release-assets/APK-METADATA.txt
+          grep -q "versionName='0.1.59-advanced'" release-assets/APK-METADATA.txt
           (cd release-assets && sha256sum --check SHA256SUMS.txt)
 
       - name: Publish native emulator release
@@ -431,7 +431,7 @@ jobs:
             Native ARM64 Android build based on the pinned Strato/Skyline source.
 
             - Package: com.dimm.skyline
-            - Version: 0.1.58-advanced (versionCode 72)
+            - Version: 0.1.59-advanced (versionCode 73)
             - ABI: arm64-v8a
             - Internal Vulkan render resolution: 0.50x through 2.00x, native fallback for unsupported passes
             - Texture controls: configurable mipmap LOD bias and device-limited anisotropic filtering
