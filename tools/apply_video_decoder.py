@@ -16,7 +16,7 @@ soc = cpp / "skyline/soc"\nhost = soc / "host1x"
 
 required = [
     root / "app/CMakeLists.txt",
-    host / "host1x.h",
+    soc / "host1x.h",
     host / "command_fifo.h",
     host / "command_fifo.cpp",
     host / "classes/nvdec.cpp",
