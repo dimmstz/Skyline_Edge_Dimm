@@ -36,9 +36,9 @@ permissions:
   contents: write
 
 concurrency:
-  # Keep every push/tag/dispatch run; only superseded runs for the same PR share a group.
-  group: skyline-android-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  # Serialize per branch/PR and cancel stale commits so one branch does not compile duplicate native APKs.
+  group: skyline-android-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
