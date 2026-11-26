@@ -71,8 +71,15 @@ edit("app/src/main/cpp/skyline/common/android_settings.h", [
 edit("app/src/main/cpp/skyline/gpu.h", [
     ("        const resolution::Scale resolutionScale; //!< Fixed for this emulation session\n",
      "        const resolution::Scale resolutionScale; //!< Fixed for this emulation session\n"
-     "        int MipmapLodBias() const { return *state.settings->mipmapLodBias; }\n"
-     "        int MaxAnisotropy() const { return *state.settings->maxAnisotropy; }\n")
+     "        int MipmapLodBias() const;\n"
+     "        int MaxAnisotropy() const;\n")
+])
+
+edit("app/src/main/cpp/skyline/gpu.cpp", [
+    ("namespace skyline::gpu {\n",
+     "namespace skyline::gpu {\n"
+     "    int GPU::MipmapLodBias() const { return *state.settings->mipmapLodBias; }\n"
+     "    int GPU::MaxAnisotropy() const { return *state.settings->maxAnisotropy; }\n")
 ])
 
 edit("app/src/main/cpp/skyline/gpu/interconnect/common/samplers.cpp", [
