@@ -36,6 +36,8 @@ def edit(relative: str, replacements: list[tuple[str, str]]) -> None:
 # Keep Strato's native Kotlin/JNI namespace intact; only change install identity.
 edit("app/build.gradle", [
     ('applicationId "com.lukevalen.stratomali"', 'applicationId "com.dimm.skyline"'),
+    ("compileSdk 34", "compileSdk 35"),
+    ("targetSdk 33", "targetSdk 35"),
     ("buildConfigField 'String', 'RELEASE_VERSION', '\"0.0.4-1\"'",
      f"""buildConfigField 'String', 'RELEASE_VERSION', '"{VERSION_NAME}"'"""),
     ("versionCode getGitVersionCode()", f"versionCode {VERSION_CODE}"),
