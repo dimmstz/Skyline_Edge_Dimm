@@ -64,6 +64,15 @@ android {
 
 ])
 
+# Android 15 requires a toolchain that understands API 35.
+edit("build.gradle", [
+    ("com.android.tools.build:gradle:8.2.1", "com.android.tools.build:gradle:8.6.1")
+])
+
+edit("gradle/wrapper/gradle-wrapper.properties", [
+    ("gradle-8.2-bin.zip", "gradle-8.7-bin.zip")
+])
+
 edit("app/src/main/res/values/strings.xml", [
     ('<string name="app_name" translatable="false">Strato Mali</string>',
      '<string name="app_name" translatable="false">Skyline Dimm</string>')
