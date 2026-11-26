@@ -49,6 +49,8 @@ checks = {
                                            ["Pixel Composite(", "destination = p.a >= 1023 ? p : Composite(p, destination)"]),
     "Dimm package identity": ("app/build.gradle",
                               ['applicationId "com.dimm.skyline"', f"versionCode {VERSION_CODE}", f'versionName "{VERSION_NAME}"']),
+    "Persistent Android release signing": ("app/build.gradle",
+                                            ['signingConfigs {', 'release {', 'ANDROID_KEYSTORE_PATH', 'signingConfig signingConfigs.release']),
     "Three-column phone game library": ("app/src/main/java/org/stratoemu/strato/MainActivity.kt",
                                          ["if (widthDp < 600f) 3", "coerceAtLeast(3)"]),
     "Compact standard game covers": ("app/src/main/res/layout/app_item_grid.xml",
