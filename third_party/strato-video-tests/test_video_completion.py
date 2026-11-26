@@ -19,9 +19,11 @@ with tempfile.TemporaryDirectory() as directory:
 #include <stdexcept>
 #include <utility>
 using u8=uint8_t;using u16=uint16_t;using u32=uint32_t;
-#define LOGD(...) ((void)0)
-#define LOGW(...) ((void)0)
-#define LOGE(...) ((void)0)
+struct Logger {
+ template<class... A> static void Debug(const char*, A&&...) {}
+ template<class... A> static void Warn(const char*, A&&...) {}
+ template<class... A> static void Error(const char*, A&&...) {}
+};
 ''')
     (tmp/'syncpoint.h').write_text('''#pragma once
 #include <common.h>
