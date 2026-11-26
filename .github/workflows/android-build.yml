@@ -27,7 +27,7 @@ permissions:
 
 concurrency:
   # Serialize per branch/PR and cancel stale commits so one branch does not compile duplicate native APKs.
-  group: skyline-android-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.ref }}
+  group: skyline-android-${{ github.event.pull_request.head.repo.full_name || github.repository }}-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
