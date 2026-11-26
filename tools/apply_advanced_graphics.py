@@ -404,5 +404,36 @@ edit("app/src/main/cpp/skyline/soc/host1x/video/video_core/host1x/vic_processor.
 """)
 ])
 
+
+# Accessibility and contrast audit: keep all settings surfaces readable in dark mode.
+edit("app/src/main/res/values/settings_design.xml", [
+    ("""        <item name="colorOnSurface">@color/settings_on_container</item>
+""", """        <item name="colorOnSurface">@color/settings_on_container</item>
+        <item name="android:textColorPrimary">@color/settings_on_container</item>
+        <item name="android:textColorSecondary">@color/settings_secondary_text</item>
+        <item name="android:textColorHint">@color/settings_secondary_text</item>
+        <item name="colorOnSurfaceVariant">@color/settings_secondary_text</item>
+        <item name="colorControlNormal">@color/settings_secondary_text</item>
+        <item name="colorControlActivated">@color/settings_blue</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+""")
+])
+
+# Preference rows previously painted with fixed RGB values; resolve colors from the active theme.
+edit("app/src/main/java/org/stratoemu/strato/settings/MaliPreferenceCards.kt", [
+    ("import androidx.recyclerview.widget.RecyclerView\n",
+     "import androidx.recyclerview.widget.RecyclerView\n"
+     "import com.google.android.material.color.MaterialColors\n"),
+    ("    private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.rgb(15, 38, 77) }\n"
+     "    private val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {\n"
+     "        color = android.graphics.Color.rgb(39, 101, 170)\n",
+     "    private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply {\n"
+     "        color = MaterialColors.getColor(context, com.google.android.material.R.attr.colorSurfaceVariant, android.graphics.Color.rgb(15, 38, 77))\n"
+     "    }\n"
+     "    private val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {\n"
+     "        color = MaterialColors.getColor(context, com.google.android.material.R.attr.colorOutline, android.graphics.Color.rgb(39, 101, 170))\n")
+])
+
 print("Applied Dimm advanced graphics settings: Vulkan resolution scale, mipmap LOD bias and anisotropy.")
 print("Applied exact-offset NVDEC frame retrieval and expanded VIC multi-slot/alpha/field/flip handling.")
