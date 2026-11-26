@@ -11,16 +11,6 @@ on:
   pull_request:
   workflow_dispatch:
     inputs:
-      publish_release:
-        description: "Create a GitHub Release and tag from this commit"
-        required: true
-        type: boolean
-        default: false
-      release_tag:
-        description: "Release tag (example: v0.1.0)"
-        required: false
-        type: string
-        default: "v0.1.0"
       apk_url:
         description: "Optional public GitHub release URL for edge-69.apk to run static DEX/ELF analysis"
         required: false
@@ -213,43 +203,6 @@ jobs:
           path: dist/
           if-no-files-found: error
           retention-days: 30
-
-      - name: Resolve release tag
-        id: release_meta
-        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
-        shell: bash
-        env:
-          RELEASE_TAG_INPUT: ${{ inputs.release_tag }}
-          RUN_NUMBER: ${{ github.run_number }}
-        run: |
-          set -euo pipefail
-          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" && "${{ inputs.publish_release }}" == "true" ]]; then
-            TAG_NAME="$RELEASE_TAG_INPUT"
-          else
-            TAG_NAME="v0.1.$RUN_NUMBER"
-          fi
-          if [[ ! "$TAG_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][A-Za-z0-9.-]+)?$ ]]; then
-            echo "Invalid release tag: $TAG_NAME (expected vX.Y.Z)"
-            exit 1
-          fi
-          echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
-
-      - name: Publish GitHub Release
-        if: ${{ false }} # Never publish the small diagnostic APK/AAB as the emulator release; native job publishes the verified full APK.
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.release_meta.outputs.tag_name }}
-          target_commitish: ${{ github.sha }}
-          name: Skyline Dimm ${{ steps.release_meta.outputs.tag_name }}
-          generate_release_notes: true
-          fail_on_unmatched_files: true
-          make_latest: true
-          files: |
-            dist/SkylineDimm-debug.apk
-            dist/SkylineDimm-release.apk
-            dist/SkylineDimm-release.aab
-            dist/SIGNING_STATUS.txt
-            dist/SHA256SUMS.txt
 
   reference-core-build:
     name: Build Strato graphics/video core for Skyline Dimm
