@@ -269,6 +269,9 @@ jobs:
       - name: Apply Dimm graphics controls and VIC/frame-queue fixes
         run: python3 project/tools/apply_advanced_graphics.py reference/strato
 
+      - name: Generate Brazilian Portuguese app localization
+        run: python3 project/tools/generate_pt_br_localization.py reference/strato
+
       - name: Verify Dimm settings reach native Vulkan and VIC code
         run: python3 project/tests/test_dimm_advanced_graphics.py reference/strato
 
