@@ -40,6 +40,26 @@ edit("app/build.gradle", [
      f"""buildConfigField 'String', 'RELEASE_VERSION', '"{VERSION_NAME}"'"""),
     ("versionCode getGitVersionCode()", f"versionCode {VERSION_CODE}"),
     ('versionName "0.0.4-1"', f'versionName "{VERSION_NAME}"'),
+    ("""android {
+""", """def releaseStorePath = System.getenv("ANDROID_KEYSTORE_PATH")
+def releaseStorePassword = System.getenv("ANDROID_STORE_PASSWORD")
+def releaseKeyAlias = System.getenv("ANDROID_KEY_ALIAS")
+def releaseKeyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+
+android {
+    signingConfigs {
+        release {
+            storeFile file(releaseStorePath ?: "${rootDir}/missing-release-key.jks")
+            storePassword releaseStorePassword ?: ""
+            keyAlias releaseKeyAlias ?: ""
+            keyPassword releaseKeyPassword ?: ""
+        }
+    }
+"""),
+    ("signingConfig signingConfigs.debug
+            manifestPlaceholders", "signingConfig signingConfigs.release
+            manifestPlaceholders")
+
 ])
 
 edit("app/src/main/res/values/strings.xml", [
