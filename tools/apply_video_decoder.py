@@ -12,7 +12,7 @@ root = Path(sys.argv[1]).resolve()
 cpp = root / "app/src/main/cpp"
 vendor = project / "third_party/strato-video"
 integration = project / "third_party/strato-video-integration"
-host = cpp / "skyline/soc/host1x"
+soc = cpp / "skyline/soc"\nhost = soc / "host1x"
 
 required = [
     root / "app/CMakeLists.txt",
@@ -53,7 +53,7 @@ def replace_once(path: Path, old: str, new: str) -> None:
         raise SystemExit(f"Refusing ambiguous patch in {path}: expected one match, found {count}: {old!r}")
     path.write_text(text.replace(old, new, 1), encoding="utf-8")
 
-host_header = host / "host1x.h"
+host_header = soc / "host1x.h"
 replace_once(host_header,
     '#include "host1x/command_fifo.h"',
     '#include "host1x/command_fifo.h"\n#include "host1x/video/runtime.h"')
