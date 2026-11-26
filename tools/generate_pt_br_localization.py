@@ -220,6 +220,37 @@ SETTINGS = {
 "settings_general_summary":"Sistema, áudio, controles, chaves, firmware e preferências do aplicativo."
 }
 
+SETUP = {
+"setup_welcome":"Bem-vindo ao Skyline Dimm",
+"setup_intro":"Selecione suas chaves, o firmware e a pasta de jogos para começar.",
+"setup_keys":"1. Selecionar prod.keys",
+"setup_firmware":"2. Instalar firmware",
+"setup_games":"3. Selecionar pasta de jogos",
+"setup_keys_help":"Obrigatório · Importe seu arquivo prod.keys.",
+"setup_firmware_help":"Recomendado · Selecione um arquivo ZIP de firmware. Você também pode instalá-lo depois em Configurações.",
+"setup_games_help":"Escolha a pasta que contém seus jogos.",
+"setup_keys_ready":"Chaves importadas",
+"setup_folder_ready":"Pasta de jogos selecionada",
+"setup_firmware_installed":"Firmware %1$s instalado",
+"setup_start":"Começar a jogar",
+"setup_back":"Voltar",
+"setup_importing_keys":"Importando chaves…",
+"setup_checking_folder":"Verificando pasta de jogos…",
+"setup_unreadable_folder":"Não foi possível ler a pasta selecionada",
+"setup_failed":"Falha na importação: %1$s",
+"setup_open":"Abrir configuração inicial"
+}
+
+EMULATION_MENU = {
+"emulation_menu":"Skyline Dimm",
+"emulation_resume":"Continuar jogo",
+"emulation_controls":"Controles na tela",
+"emulation_fps":"Mostrar FPS",
+"emulation_mute":"Silenciar áudio",
+"emulation_exit":"Sair do jogo",
+"emulation_exit_message":"Deseja sair deste jogo? O progresso não salvo será perdido."
+}
+
 ARRAYS = {
 "log_level":["Detalhado","Depuração","Informações","Aviso","Erro","Desativado"],
 "layout_type":["Lista","Grade","Grade compacta"],
@@ -261,6 +292,8 @@ def write_arrays():
 write_strings("strings.xml", STRINGS)
 write_strings("strings_mali_library.xml", MALI)
 write_strings("settings_design.xml", SETTINGS)
+write_strings("setup.xml", SETUP)
+write_strings("emulation_menu.xml", EMULATION_MENU)
 write_arrays()
 
 advanced = {
