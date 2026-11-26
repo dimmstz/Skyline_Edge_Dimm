@@ -40,6 +40,7 @@ for name, destination in [
     ("nvdec.h", host / "classes/nvdec.h"),
     ("vic.cpp", host / "classes/vic.cpp"),
     ("vic.h", host / "classes/vic.h"),
+    ("tegra_host_interface.h", host / "tegra_host_interface.h"),
     ("host1x.cpp", cpp / "skyline/soc/host1x.cpp"),
 ]:
     source = integration / name
