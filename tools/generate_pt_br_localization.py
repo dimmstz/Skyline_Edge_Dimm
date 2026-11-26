@@ -205,10 +205,27 @@ MALI = {
 "mali_games":"Jogos","mali_install":"Instalar","mali_add":"Adicionar"
 }
 
+SETTINGS = {
+"settings_hub_title":"Configurações",
+"settings_version_label":"Versão %1$s",
+"settings_tab_graphics":"Gráficos",
+"settings_tab_gpu":"GPU",
+"settings_tab_folders":"Pastas de jogos",
+"settings_tab_drivers":"Drivers gráficos",
+"settings_tab_general":"Geral",
+"settings_graphics_summary":"Tela, proporção, estatísticas de desempenho e cache de shaders.",
+"settings_gpu_summary":"Buffering, memória da GPU e opções avançadas de compatibilidade.",
+"settings_folders_summary":"Escolha a pasta de jogos e controle quais arquivos aparecem na biblioteca.",
+"settings_drivers_summary":"Importe, selecione ou remova pacotes de drivers gráficos.",
+"settings_general_summary":"Sistema, áudio, controles, chaves, firmware e preferências do aplicativo."
+}
+
 ARRAYS = {
 "log_level":["Detalhado","Depuração","Informações","Aviso","Erro","Desativado"],
 "layout_type":["Lista","Grade","Grade compacta"],
+"sort_apps_by":["A–Z","Z–A"],
 "app_theme":["Claro","Escuro","Usar padrão do sistema"],
+"system_languages":["Inglês (Estados Unidos)","Inglês (Reino Unido)","Francês","Francês canadense","Alemão","Espanhol","Espanhol latino-americano","Italiano","Holandês","Português","Português do Brasil","Russo","Japonês","Chinês","Chinês tradicional","Chinês simplificado","Coreano","Taiwanês"],
 "system_region":["Automático","Japão","Américas","Europa","Austrália / Nova Zelândia","Hong Kong / Taiwan / Coreia do Sul","China"],
 "aspect_ratios":["16:9 (Switch, recomendado)","21:9 (mods ultrawide)","Proporção da tela do dispositivo (esticar para preencher)"],
 "orientation_entries":["Automática","Paisagem","Paisagem (invertida)"]
@@ -243,6 +260,7 @@ def write_arrays():
 
 write_strings("strings.xml", STRINGS)
 write_strings("strings_mali_library.xml", MALI)
+write_strings("settings_design.xml", SETTINGS)
 write_arrays()
 
 advanced = {
