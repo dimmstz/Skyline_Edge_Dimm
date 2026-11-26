@@ -476,7 +476,7 @@ jobs:
             - Dimm integration and build scripts: https://github.com/dimmstz/Skyline_Edge_Dimm/tree/${{ github.sha }}
             - GPL-3.0-or-later, MPL-2.0 and FFmpeg LGPL-2.1-or-later notices are included in the source repository.
 
-            H.264/VP8/VP9 decode and VIC composition are regression-tested in CI. Resident Evil 4
+            H.264 and VP8 decode plus VIC composition are regression-tested in CI; VP9 support is included but not separately fixture-tested. Resident Evil 4
             prerecorded campaign videos and Galaxy M23 playback still require on-device testing.
           files: |
             release-assets/SkylineDimm-M23-ARM64.apk
