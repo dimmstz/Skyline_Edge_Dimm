@@ -139,7 +139,7 @@ resources.write_text("""<?xml version="1.0" encoding="utf-8"?>
         <item>-4</item><item>-2</item><item>0</item><item>2</item><item>4</item><item>6</item><item>8</item>
     </integer-array>
     <string name="max_anisotropy">Anisotropic filtering override</string>
-    <string name="max_anisotropy_desc">Overrides the game's texture anisotropy when supported by the GPU. Higher values can improve angled surfaces but may cost performance. Restart the game after changing.</string>
+    <string name="max_anisotropy_desc">Overrides game-provided texture anisotropy when supported by the GPU. Higher values can improve angled surfaces but may cost performance. Restart the game after changing.</string>
     <string-array name="max_anisotropy_entries" translatable="false">
         <item>Game default</item><item>1x</item><item>2x</item><item>4x</item><item>8x</item><item>16x (device-limited)</item>
     </string-array>
