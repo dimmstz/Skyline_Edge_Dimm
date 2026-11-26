@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - fix/re4-video-decoder
     tags:
       - "v*"
   pull_request:
@@ -251,7 +252,7 @@ jobs:
 
   reference-core-build:
     name: Build pinned Skyline reference core (optional)
-    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.build_reference_core) || (github.event_name == 'push' && github.ref == 'refs/heads/main') }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.build_reference_core) || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/fix/re4-video-decoder')) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
@@ -263,6 +264,17 @@ jobs:
           submodules: false
           fetch-depth: 1
           path: reference/skyline
+
+      - name: Checkout Dimm video integration overlay
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: project
+
+      # Apply the pinned GPL-3.0-or-later NVDEC/VIC implementation to the
+      # original Skyline checkout. The backup branch and upstream source stay untouched.
+      - name: Integrate H.264 VP8 VP9 video decoder and VIC compositor
+        run: python3 project/tools/apply_video_decoder.py reference/skyline
 
       # The historical upstream URLs for these two dependencies were removed.
       # Use maintained public mirrors while preserving the exact gitlink commits.
