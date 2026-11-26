@@ -57,6 +57,11 @@ checks = {
                                      ['android:layout_height="112dp"', 'android:textSize="11sp"', 'android:layout_margin="3dp"']),
     "Compact overlay game covers": ("app/src/main/res/layout/app_item_grid_compact.xml",
                                     ['android:layout_height="112dp"', 'android:layout_height="match_parent"', 'android:layout_margin="3dp"']),
+    "Dark settings theme text contrast": ("app/src/main/res/values/settings_design.xml",
+                                          ['android:textColorPrimary', 'android:textColorSecondary', 'colorOnSurfaceVariant', 'colorControlNormal']),
+    "Theme-aware preference cards": ("app/src/main/java/org/stratoemu/strato/settings/MaliPreferenceCards.kt",
+                                     ['MaterialColors.getColor(context, com.google.android.material.R.attr.colorSurfaceVariant',
+                                      'MaterialColors.getColor(context, com.google.android.material.R.attr.colorOutline']),
 }
 
 for label, (path, needles) in checks.items():
@@ -64,6 +69,22 @@ for label, (path, needles) in checks.items():
     missing = [needle for needle in needles if needle not in source]
     if missing:
         raise SystemExit(f"{label}: missing expected implementation: {missing}")
+
+pt_settings = root / "app/src/main/res/values-pt-rBR/settings_design.xml"
+if not pt_settings.is_file():
+    raise SystemExit("Portuguese settings translations were not generated")
+pt_settings_text = pt_settings.read_text(encoding="utf-8")
+for translated in ("Configurações", "Gráficos", "Pastas de jogos", "Drivers gráficos"):
+    if translated not in pt_settings_text:
+        raise SystemExit(f"Missing Brazilian Portuguese settings translation: {translated}")
+
+pt_arrays = root / "app/src/main/res/values-pt-rBR/array.xml"
+if not pt_arrays.is_file():
+    raise SystemExit("Portuguese preference arrays were not generated")
+pt_arrays_text = pt_arrays.read_text(encoding="utf-8")
+for translated in ("Grade compacta", "Português do Brasil", "A–Z"):
+    if translated not in pt_arrays_text:
+        raise SystemExit(f"Missing Brazilian Portuguese preference option: {translated}")
 
 resources = read("app/src/main/res/values/dimm_advanced_graphics.xml")
 if resources.count("<item>") < 26:
