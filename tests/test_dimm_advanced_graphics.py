@@ -24,6 +24,12 @@ def read(path):
     return p.read_text(encoding="utf-8")
 
 checks = {
+    "Android 15 API compatibility": ("app/build.gradle",
+                                     ["compileSdk 35", "targetSdk 35"]),
+    "Android Gradle Plugin 8.6.1": ("build.gradle",
+                                   ["com.android.tools.build:gradle:8.6.1"]),
+    "Gradle 8.7 wrapper": ("gradle/wrapper/gradle-wrapper.properties",
+                           ["gradle-8.7-bin.zip"]),
     "Android preference model": ("app/src/main/java/org/stratoemu/strato/settings/EmulationSettings.kt",
                                  ["mipmapLodBias", "maxAnisotropy", "performanceProfile", "effectiveResolutionScale", "effectiveMipmapLodBias", "effectiveMaxAnisotropy"]),
     "Native settings serialization": ("app/src/main/java/org/stratoemu/strato/settings/NativeSettings.kt",
