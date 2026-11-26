@@ -56,9 +56,9 @@ android {
         }
     }
 """),
-    ("signingConfig signingConfigs.debug
-            manifestPlaceholders", "signingConfig signingConfigs.release
-            manifestPlaceholders")
+    ("""signingConfig signingConfigs.debug
+            manifestPlaceholders""", """signingConfig signingConfigs.release
+            manifestPlaceholders""")
 
 ])
 
