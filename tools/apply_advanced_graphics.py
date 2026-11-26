@@ -436,4 +436,30 @@ edit("app/src/main/java/org/stratoemu/strato/settings/MaliPreferenceCards.kt", [
 ])
 
 print("Applied Dimm advanced graphics settings: Vulkan resolution scale, mipmap LOD bias and anisotropy.")
+
+# VFX/FPS backend audit instrumentation. Record real Vulkan capabilities only;
+# do not pretend guest effects can be classified safely.
+edit("app/src/main/cpp/skyline/gpu.cpp", [
+    ("""        LOGI("Internal resolution scale: {}x (texture-cache scaling)", resolutionScale.Factor());
+""", """        LOGI("Internal resolution scale: {}x (texture-cache scaling)", resolutionScale.Factor());
+        const auto deviceProperties{vkPhysicalDevice.getProperties()};
+        LOGI("[VFX-OPT] GPU={} vendor=0x{:04X} device=0x{:04X} driverVersion={} VulkanApi={}.{}.{}",
+             deviceProperties.deviceName, traits.vendorId, traits.deviceId, traits.driverVersion,
+             VK_API_VERSION_MAJOR(deviceProperties.apiVersion), VK_API_VERSION_MINOR(deviceProperties.apiVersion),
+             VK_API_VERSION_PATCH(deviceProperties.apiVersion));
+        LOGI("[VFX-OPT] capabilities shaderFloat16={} anisotropy={} maxAnisotropy={} maxImage2D={} maxImageArrayLayers={}",
+             traits.supportsFloat16, traits.supportsAnisotropicFiltering, deviceProperties.limits.maxSamplerAnisotropy,
+             deviceProperties.limits.maxImageDimension2D, deviceProperties.limits.maxImageArrayLayers);
+        LOGI("[VFX-OPT] shadowScale=unsupported vfxScale=unsupported skipVolumetrics=unsupported disablePostProcessing=unsupported disableReflections=unsupported; native guest render targets remain unchanged");
+""")
+])
+
+edit("app/src/main/cpp/skyline/gpu/shader_manager.cpp", [
+    ("""        hostTranslateInfo = Shader::HostTranslateInfo{
+""", """        LOGI("[VFX-OPT] shader FP16 capability={} (translator preserves guest shader precision semantics; no unsafe forced demotion)",
+             traits.supportsFloat16);
+        hostTranslateInfo = Shader::HostTranslateInfo{
+""")
+])
+
 print("Applied exact-offset NVDEC frame retrieval and expanded VIC multi-slot/alpha/field/flip handling.")
