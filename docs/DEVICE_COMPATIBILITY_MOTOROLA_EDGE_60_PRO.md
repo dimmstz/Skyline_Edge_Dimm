@@ -33,6 +33,24 @@ A aplicação usa Vulkan e consulta propriedades/limites da GPU no dispositivo. 
 | Shadow/VFX/volumétricos/reflexos | Permanecem nativos enquanto o backend não identificar passes/recursos com segurança |
 | Vídeos/cutscenes | Não alterar NVDEC/VIC nem o caminho de apresentação de vídeo para este perfil |
 
+## Configuração específica confirmada pelo usuário
+
+- RAM física: 8 GB.
+- Android: 15.
+
+### Perfil inicial recomendado para 8 GB
+
+1. Começar em **FPS equilibrado (0,75x)**. É a escolha inicial para preservar qualidade e reduzir a carga de pixels.
+2. Usar **Desempenho (0,50x)** somente se a cena continuar limitada pela GPU ou apresentar quedas persistentes.
+3. Manter cache de shaders/pipelines habilitado. A primeira execução pode apresentar compilação; comparar somente após aquecer o cache.
+4. Não ativar importação direta de memória Adreno nem opções de clock Qualcomm/KGSL: o Edge 60 Pro usa GPU Mali.
+5. Não fixar limites artificiais de RAM nem reservar uma quantidade fixa de memória para a GPU. Android compartilha memória física entre sistema, aplicativo e recursos gráficos; uma reserva rígida pode piorar multitarefa e causar encerramento por pressão de memória.
+6. Fechar aplicativos pesados em segundo plano durante os testes. Repetir medições com a mesma cena, temperatura inicial semelhante e após 10–15 minutos de uso.
+
+### Android 15
+
+O pacote Android é compilado com SDK 35 no workflow atual. Isso cobre a base de compilação Android 15, mas não substitui testes no firmware Motorola e no driver Vulkan fornecido pela atualização instalada no telefone. O APK deve permanecer ARM64; não é necessário compilar uma variante Adreno/Mali separada porque a seleção de capacidades é feita em runtime pelo Vulkan.
+
 ## Plano de validação no aparelho
 
 1. Instalar o APK ARM64 produzido pelo workflow.
