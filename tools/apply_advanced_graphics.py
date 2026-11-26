@@ -47,6 +47,39 @@ edit("app/src/main/res/values/strings.xml", [
      '<string name="app_name" translatable="false">Skyline Dimm</string>')
 ])
 
+# Use a three-column library on phones, with compact fixed-height cover art.
+# Tablets keep an adaptive grid with at least three columns.
+edit("app/src/main/java/org/stratoemu/strato/MainActivity.kt", [
+    ("""        val itemWidth = 225
+        val metrics = resources.displayMetrics
+        val gridSpan = ceil((metrics.widthPixels / metrics.density) / itemWidth).toInt()
+""",
+     """        val metrics = resources.displayMetrics
+        val widthDp = metrics.widthPixels / metrics.density
+        val gridSpan = if (widthDp < 600f) 3 else ceil(widthDp / 220f).toInt().coerceAtLeast(3)
+""")
+])
+
+edit("app/src/main/res/layout/app_item_grid.xml", [
+    ('android:layout_height="wrap_content"\n        android:layout_margin="5dp"\n        app:cardBackgroundColor="@color/mali_card"\n        app:cardCornerRadius="20dp"',
+     'android:layout_height="112dp"\n        android:layout_margin="3dp"\n        app:cardBackgroundColor="@color/mali_card"\n        app:cardCornerRadius="14dp"'),
+    ('android:layout_height="wrap_content"\n            android:adjustViewBounds="true"',
+     'android:layout_height="112dp"\n            android:adjustViewBounds="false"'),
+    ('android:layout_marginStart="10dp"\n        android:layout_marginEnd="10dp"\n        android:ellipsize="end"',
+     'android:layout_marginStart="6dp"\n        android:layout_marginEnd="6dp"\n        android:ellipsize="end"'),
+    ('android:singleLine="true"\n        android:textColor="@color/mali_text"',
+     'android:singleLine="true"\n        android:textSize="11sp"\n        android:textColor="@color/mali_text"')
+])
+
+edit("app/src/main/res/layout/app_item_grid_compact.xml", [
+    ('android:layout_height="wrap_content"\n    android:layout_margin="5dp"\n    app:cardBackgroundColor="@color/mali_card"\n    app:cardCornerRadius="20dp"',
+     'android:layout_height="112dp"\n    android:layout_margin="3dp"\n    app:cardBackgroundColor="@color/mali_card"\n    app:cardCornerRadius="14dp"'),
+    ('android:layout_height="wrap_content">\n\n        <ImageView',
+     'android:layout_height="match_parent">\n\n        <ImageView'),
+    ('android:layout_height="wrap_content"\n            android:adjustViewBounds="true"',
+     'android:layout_height="match_parent"\n            android:adjustViewBounds="false"')
+])
+
 # Existing real Vulkan internal-resolution scaling is already implemented by this pinned source.
 # Add per-game/global sampler controls, passed all the way from Android preferences to Vulkan.
 edit("app/src/main/java/org/stratoemu/strato/settings/EmulationSettings.kt", [
