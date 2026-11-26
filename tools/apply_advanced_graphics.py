@@ -189,7 +189,24 @@ edit("app/src/main/res/xml/emulation_preferences.xml", [
      '            app:refreshRequired="true"\n'
      '            app:title="@string/max_anisotropy"\n'
      '            app:useSimpleSummaryProvider="true" />\n'
-     '        <SwitchPreferenceCompat\n            android:defaultValue="true"\n            android:summaryOff="@string/triple_buffering_disabled"')
+     '        <SwitchPreferenceCompat\n            android:defaultValue="true"\n            android:summaryOff="@string/triple_buffering_disabled"'),
+    ('''            app:key="resolution_scale"
+            app:refreshRequired="true"
+            app:title="@string/resolution_scale"
+            app:useSimpleSummaryProvider="true" />''',
+     '''            app:key="resolution_scale"
+            app:refreshRequired="true"
+            app:title="@string/resolution_scale"
+            app:useSimpleSummaryProvider="true" />
+        <org.stratoemu.strato.preference.IntegerListPreference
+            android:defaultValue="0"
+            android:entries="@array/performance_profile_entries"
+            android:entryValues="@array/performance_profile_values"
+            android:summary="@string/performance_profile_desc"
+            app:key="performance_profile"
+            app:refreshRequired="true"
+            app:title="@string/performance_profile"
+            app:useSimpleSummaryProvider="true" />''')
 ])
 
 resources = root / "app/src/main/res/values/dimm_advanced_graphics.xml"
@@ -221,6 +238,14 @@ resources.write_text("""<?xml version="1.0" encoding="utf-8"?>
     </integer-array>
     <string name="max_anisotropy">Anisotropic filtering override</string>
     <string name="max_anisotropy_desc">Overrides game-provided texture anisotropy when supported by the GPU. Higher values can improve angled surfaces but may cost performance. Restart the game after changing.</string>
+    <string name="performance_profile">Performance profile</string>
+    <string name="performance_profile_desc">Applies a preset to the existing internal resolution, mipmap LOD bias and anisotropy controls. Changes take effect when the game is restarted. Custom keeps your individual values.</string>
+    <string-array name="performance_profile_entries" translatable="false">
+        <item>Custom</item><item>Balanced FPS (0.75x)</item><item>Performance (0.50x)</item>
+    </string-array>
+    <integer-array name="performance_profile_values">
+        <item>0</item><item>1</item><item>2</item>
+    </integer-array>
     <string-array name="max_anisotropy_entries" translatable="false">
         <item>Game default</item><item>1x</item><item>2x</item><item>4x</item><item>8x</item><item>16x (device-limited)</item>
     </string-array>
@@ -229,6 +254,38 @@ resources.write_text("""<?xml version="1.0" encoding="utf-8"?>
     </integer-array>
 </resources>
 """, encoding="utf-8")
+
+# A measured, conservative performance profile maps only to existing real renderer
+# controls. It never disables frame pacing, shader/pipeline caches or video paths.
+edit("app/src/main/java/org/stratoemu/strato/settings/EmulationSettings.kt", [
+    ("    var resolutionScale by sharedPreferences(context, 2, prefName = prefName)\\n",
+     "    var resolutionScale by sharedPreferences(context, 2, prefName = prefName)\\n"
+     "    var performanceProfile by sharedPreferences(context, 0, prefName = prefName)\\n"
+     "    val effectiveResolutionScale: Int get() = when (performanceProfile) { 1 -> 1; 2 -> 0; else -> resolutionScale }\\n"
+     "    val effectiveMipmapLodBias: Int get() = when (performanceProfile) { 1 -> 1; 2 -> 3; else -> mipmapLodBias }\\n"
+     "    val effectiveMaxAnisotropy: Int get() = when (performanceProfile) { 1 -> 2; 2 -> 1; else -> maxAnisotropy }\\n")
+])
+
+edit("app/src/main/java/org/stratoemu/strato/settings/NativeSettings.kt", [
+    ("        pref.resolutionScale,\\n"
+     "        pref.mipmapLodBias,\\n"
+     "        pref.maxAnisotropy\\n",
+     "        pref.effectiveResolutionScale,\\n"
+     "        pref.effectiveMipmapLodBias,\\n"
+     "        pref.effectiveMaxAnisotropy\\n")
+])
+
+edit("app/src/main/java/org/stratoemu/strato/settings/GlobalSettingsFragment.kt", [
+    ('"respect_display_cutout", "enable_foldable_layout", "show_pause_button", "disable_shader_cache")',
+     '"respect_display_cutout", "enable_foldable_layout", "show_pause_button", "disable_shader_cache", "performance_profile")')
+])
+
+edit("app/src/main/java/org/stratoemu/strato/EmulationActivity.kt", [
+    ('                        text = "$fps FPS • $ramUsage MB"\\n',
+     '                        val frameTime = String.format(java.util.Locale.US, "%.1f", averageFrametime)\\n'
+     '                        val frameJitter = String.format(java.util.Locale.US, "%.1f", averageFrametimeDeviation)\\n'
+     '                        text = "$fps FPS • $frameTime ms ±$frameJitter • $ramUsage MB"\\n')
+])
 
 # Resolve the decoded frame by its exact guest surface address. The previous FIFO-only
 # lookup could present a different frame when decode and VIC presentation got out of step.
