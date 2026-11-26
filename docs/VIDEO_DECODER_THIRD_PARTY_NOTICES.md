@@ -6,11 +6,11 @@ The Host1x NVDEC/VIC implementation in `third_party/strato-video/` is vendored f
 - Pinned source commit: `9249ea351ad7bd7b0e7d4a319e1ad1c56dae865c`\n- Skyline base used by CI: https://github.com/im030/skyline-emu at `35fb874a42cb548cbd3d66a00d65e4b2a4c1516b`
 - Original upstream ancestry: Strato / Skyline, with decoder and VIC implementation derived from Eden and yuzu.
 - License for the decoder/runtime implementation: GPL-3.0-or-later.
-- FFmpeg: version 6.1.2, built as a static Android arm64 library with H.264, VP8 and VP9 decoders/parsers enabled.
+- FFmpeg: version 6.1.2 from https://github.com/FFmpeg/FFmpeg/tree/n6.1.2, built as a static Android arm64 library with H.264, VP8 and VP9 decoders/parsers enabled; LGPL-2.1-or-later.
 
 The integration keeps the original Skyline Host1x command FIFO and adds a small adapter that routes NVDEC/VIC register writes to the decoder runtime and guest SMMU memory.
 
-Original Skyline files retain their original SPDX copyright and MPL-2.0 notices. The GPL-3.0-or-later portions retain their own SPDX notices. See `LICENSE-GPL-3.0.txt` and `LICENSE-MPL-2.0.txt`.
+Original Skyline files retain their original SPDX copyright and MPL-2.0 notices. The GPL-3.0-or-later portions retain their own SPDX notices. See `LICENSE-GPL-3.0.txt`, `LICENSE-MPL-2.0.txt` and `LICENSE-LGPL-2.1.txt`.
 
 ## Functional scope and limitations
 
