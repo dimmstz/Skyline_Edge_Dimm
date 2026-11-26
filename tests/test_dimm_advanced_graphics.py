@@ -25,9 +25,9 @@ def read(path):
 
 checks = {
     "Android preference model": ("app/src/main/java/org/stratoemu/strato/settings/EmulationSettings.kt",
-                                 ["mipmapLodBias", "maxAnisotropy"]),
+                                 ["mipmapLodBias", "maxAnisotropy", "performanceProfile", "effectiveResolutionScale", "effectiveMipmapLodBias", "effectiveMaxAnisotropy"]),
     "Native settings serialization": ("app/src/main/java/org/stratoemu/strato/settings/NativeSettings.kt",
-                                       ["pref.mipmapLodBias", "pref.maxAnisotropy"]),
+                                       ["pref.effectiveMipmapLodBias", "pref.effectiveMaxAnisotropy", "pref.effectiveResolutionScale"]),
     "JNI settings bridge": ("app/src/main/cpp/skyline/common/android_settings.h",
                             ['GetInt<int>("mipmapLodBias")', 'GetInt<int>("maxAnisotropy")']),
     "Native settings storage": ("app/src/main/cpp/skyline/common/settings.h",
@@ -51,6 +51,12 @@ checks = {
                               ['applicationId "com.dimm.skyline"', f"versionCode {VERSION_CODE}", f'versionName "{VERSION_NAME}"']),
     "Persistent Android release signing": ("app/build.gradle",
                                             ['signingConfigs {', 'release {', 'ANDROID_KEYSTORE_PATH', 'signingConfig signingConfigs.release']),
+    "Real performance profile mapping": ("app/src/main/java/org/stratoemu/strato/settings/EmulationSettings.kt",
+                                            ["performanceProfile", "effectiveResolutionScale", "effectiveMipmapLodBias", "effectiveMaxAnisotropy"]),
+    "Native profile values reach Vulkan settings": ("app/src/main/java/org/stratoemu/strato/settings/NativeSettings.kt",
+                                                     ["pref.effectiveResolutionScale", "pref.effectiveMipmapLodBias", "pref.effectiveMaxAnisotropy"]),
+    "Frame-time and jitter diagnostics": ("app/src/main/java/org/stratoemu/strato/EmulationActivity.kt",
+                                          ["averageFrametime", "averageFrametimeDeviation", "ms ±"]),
     "Three-column phone game library": ("app/src/main/java/org/stratoemu/strato/MainActivity.kt",
                                          ["if (widthDp < 600f) 3", "coerceAtLeast(3)"]),
     "Compact standard game covers": ("app/src/main/res/layout/app_item_grid.xml",
@@ -99,6 +105,14 @@ pt_arrays = root / "app/src/main/res/values-pt-rBR/array.xml"
 if not pt_arrays.is_file():
     raise SystemExit("Portuguese preference arrays were not generated")
 pt_arrays_text = pt_arrays.read_text(encoding="utf-8")
+pt_advanced = root / "app/src/main/res/values-pt-rBR/dimm_advanced_graphics.xml"
+if not pt_advanced.is_file():
+    raise SystemExit("Portuguese performance profile translations were not generated")
+pt_advanced_text = pt_advanced.read_text(encoding="utf-8")
+for translated in ("Perfil de desempenho", "FPS equilibrado (0,75x)", "Desempenho (0,50x)"):
+    if translated not in pt_advanced_text:
+        raise SystemExit(f"Missing Brazilian Portuguese performance profile translation: {translated}")
+
 for translated in ("Grade compacta", "Português do Brasil", "A–Z"):
     if translated not in pt_arrays_text:
         raise SystemExit(f"Missing Brazilian Portuguese preference option: {translated}")
