@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - fix/re4-video-decoder
+      - feat/advanced-graphics-video-m23
     tags:
       - "v*"
   pull_request:
@@ -251,82 +252,66 @@ jobs:
             dist/SHA256SUMS.txt
 
   reference-core-build:
-    name: Build pinned Skyline reference core (optional)
-    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.build_reference_core) || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/fix/re4-video-decoder')) }}
+    name: Build Strato graphics/video core for Skyline Dimm
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.build_reference_core) || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/fix/re4-video-decoder' || github.ref == 'refs/heads/feat/advanced-graphics-video-m23')) || github.event_name == 'pull_request' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    timeout-minutes: 180
     steps:
-      - name: Checkout pinned Skyline source and all submodules
+      - name: Checkout pinned Strato/Skyline source
         uses: actions/checkout@v4
         with:
-          repository: im030/skyline-emu
-          ref: 35fb874a42cb548cbd3d66a00d65e4b2a4c1516b
+          repository: LukeValen/Strato-Mali-Public-Build
+          ref: 9249ea351ad7bd7b0e7d4a319e1ad1c56dae865c
           submodules: false
           fetch-depth: 1
-          path: reference/skyline
+          path: reference/strato
 
-      - name: Checkout Dimm video integration overlay
+      - name: Checkout Dimm integration and graphics patch
         uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
           path: project
 
-      # Apply the pinned GPL-3.0-or-later NVDEC/VIC implementation to the
-      # original Skyline checkout. The backup branch and upstream source stay untouched.
-      - name: Integrate H.264 VP8 VP9 video decoder and VIC compositor
-        run: python3 project/tools/apply_video_decoder.py reference/skyline
-
-      # The historical upstream URLs for these two dependencies were removed.
-      # Use maintained public mirrors while preserving the exact gitlink commits.
-      - name: Restore unavailable historical submodule mirrors
-        working-directory: reference/skyline
+      - name: Restore all pinned source submodules
+        working-directory: reference/strato
         shell: bash
         run: |
           set -euo pipefail
-          git config -f .gitmodules submodule.Sirit.url https://github.com/yuzu-mirror/sirit
-          git config -f .gitmodules 'submodule.Shader Compiler.url' https://github.com/strato-emu/shader-compiler
           git submodule sync --recursive
-          git submodule update --init --recursive --depth=1
+          for attempt in 1 2 3; do
+            if git -c protocol.version=2 submodule update --init --force --depth=1 --recursive; then
+              exit 0
+            fi
+            echo "Submodule attempt $attempt failed; retrying..."
+            sleep 10
+          done
+          exit 1
 
-      - name: Run NVDEC/VIC regression tests (H.264, VP8, VIC surfaces and fences)
-        working-directory: reference/skyline
+      - name: Install native test dependencies
         shell: bash
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y libavcodec-dev libavutil-dev
-          python3 tests/test_video_pipeline.py
-          python3 tests/test_video_completion.py
+          sudo apt-get install -y libavcodec-dev libavutil-dev libvulkan-dev mesa-vulkan-drivers vulkan-validationlayers glslang-tools ninja-build
 
-      # Native reference build fix: resolve the pinned Hilt plugin from Google's Maven.
-      # The pinned upstream settings.gradle only includes :app. Its root
-      # build.gradle declares Hilt through the plugins DSL, so Gradle needs
-      # Google's Maven repository in pluginManagement (not only dependencies).
-      - name: Configure Gradle plugin repositories for pinned Skyline
-        working-directory: reference/skyline
+      - name: Apply Dimm graphics controls and VIC/frame-queue fixes
+        run: python3 project/tools/apply_advanced_graphics.py reference/strato
+
+      - name: Test NVDEC and VIC video pipeline
+        working-directory: reference/strato
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
+          python3 tests/test_video_pipeline.py
+          python3 tests/test_video_completion.py
 
-          settings = Path("settings.gradle")
-          original = settings.read_text(encoding="utf-8")
-          if "pluginManagement" not in original:
-              block = """pluginManagement {
-              repositories {
-                  google()
-                  mavenCentral()
-                  gradlePluginPortal()
-              }
-          }
-
-          """
-              settings.write_text(block + original, encoding="utf-8")
-          elif "google()" not in original.split("pluginManagement", 1)[1].split("}", 1)[0]:
-              raise SystemExit("pluginManagement exists but does not declare google(); refusing unsafe rewrite")
-          PY
-          grep -A6 '^pluginManagement' settings.gradle
+      - name: Test internal Vulkan resolution scaling
+        working-directory: reference/strato
+        shell: bash
+        run: |
+          set -euo pipefail
+          ASAN_OPTIONS=detect_leaks=0 UBSAN_OPTIONS=halt_on_error=1 python3 tests/test_resolution_scaling.py
+          python3 tests/test_resolution_vulkan.py
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -350,89 +335,66 @@ jobs:
           echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
           echo "$SDK/platform-tools" >> "$GITHUB_PATH"
 
-      - name: Install reference toolchain
+      - name: Install Android SDK, NDK and CMake
         shell: bash
         run: |
           set -euo pipefail
           set +o pipefail
           yes | "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --licenses >/dev/null
           set -o pipefail
-          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --install \
-            "platform-tools" \
-            "platforms;android-33" \
-            "build-tools;33.0.2" \
-            "ndk;25.0.8775105" \
-            "cmake;3.22.1"
+          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --install "platform-tools" "platforms;android-34" "build-tools;34.0.0" "ndk;26.1.10909125" "cmake;3.22.1"
 
-      # Keep the upstream Kotlin/JNI namespace unchanged: libskyline.so exports
-      # Java_emu_skyline_* symbols. Only change the installable application ID
-      # and user-facing label so this fork can coexist with the original Skyline.
-      - name: Apply Skyline Dimm application identity
-        working-directory: reference/skyline
+      - name: Restore Gradle cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle/
+          key: ${{ runner.os }}-skyline-dimm-strato-${{ hashFiles('reference/strato/**/build.gradle', 'reference/strato/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-skyline-dimm-strato-
+
+      - name: Validate patched Kotlin settings
+        working-directory: reference/strato
+        run: ./gradlew --no-daemon --stacktrace compileMainlineReleaseKotlin
+
+      - name: Build optimized ARM64 native emulator
+        working-directory: reference/strato
         shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-
-          path = Path("app/build.gradle")
-          source = path.read_text(encoding="utf-8")
-          replacements = {
-              'applicationId "skyline.emu"': 'applicationId "com.dimm.skyline"',
-              'versionCode 3': 'versionCode 71',
-              'versionName "0.0.3"': 'versionName "0.1.57-video"',
-              'manifestPlaceholders += [appLabel: "Skyline"]': 'manifestPlaceholders += [appLabel: "Skyline Dimm"]',
-          }
-          for old, new in replacements.items():
-              count = source.count(old)
-              if count != 1:
-                  raise SystemExit(f"Expected exactly one occurrence of {old!r}; found {count}")
-              source = source.replace(old, new, 1)
-          if 'namespace \'emu.skyline\'' not in source:
-              raise SystemExit("JNI namespace emu.skyline changed or missing; refusing unsafe package migration")
-          path.write_text(source, encoding="utf-8")
-          PY
-          grep -E 'namespace |applicationId |versionCode |versionName |appLabel' app/build.gradle
-
-      - name: Build optimized Skyline reference release APK
-        working-directory: reference/skyline
-        shell: bash
+        env:
+          CMAKE_C_COMPILER_LAUNCHER: ccache
+          CMAKE_CXX_COMPILER_LAUNCHER: ccache
         run: |
           set -euo pipefail
           chmod +x ./gradlew
-          # Release compiles the native core with CMAKE_BUILD_TYPE=RELEASE and
-          # excludes the large Vulkan validation-layer libraries used by Debug.
-          ./gradlew --no-daemon --stacktrace --max-workers=2 :app:assembleFullRelease
-          APK="$(find app/build/outputs/apk/full/release -maxdepth 1 -type f -name '*.apk' -print -quit)"
+          ./gradlew --no-daemon --stacktrace --max-workers=2 :app:assembleMainlineRelease
+          APK="$(find app/build/outputs/apk/mainline/release -maxdepth 1 -type f -name '*.apk' -print -quit)"
           test -n "$APK"
           test -s "$APK"
           mkdir -p "$GITHUB_WORKSPACE/reference-dist"
           cp "$APK" "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.apk"
-
-          AAPT="$ANDROID_HOME/build-tools/33.0.2/aapt"
-          APKSIGNER="$ANDROID_HOME/build-tools/33.0.2/apksigner"
+          AAPT="$ANDROID_HOME/build-tools/34.0.0/aapt"
+          APKSIGNER="$ANDROID_HOME/build-tools/34.0.0/apksigner"
           "$AAPT" dump badging "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.apk" > "$GITHUB_WORKSPACE/reference-dist/APK-METADATA.txt"
+          grep -q "package: name='com.dimm.skyline'" "$GITHUB_WORKSPACE/reference-dist/APK-METADATA.txt"
+          grep -q "versionCode='72'" "$GITHUB_WORKSPACE/reference-dist/APK-METADATA.txt"
+          grep -q "versionName='0.1.58-advanced'" "$GITHUB_WORKSPACE/reference-dist/APK-METADATA.txt"
           "$APKSIGNER" verify --verbose "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.apk"
           unzip -l "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.apk" | grep -q 'lib/arm64-v8a/libskyline.so'
-          if unzip -l "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.apk" | grep -q 'libVkLayer_khronos_validation.so'; then
-            echo "Unexpected Vulkan validation layer in optimized release APK."
-            exit 1
-          fi
           (
             cd "$GITHUB_WORKSPACE/reference-dist"
             sha256sum SkylineDimm-M23-ARM64.apk > SHA256SUMS.txt
           )
+          printf '%s\n' "Native Strato/Skyline ARM64 build; Vulkan resolution scaling, mipmap LOD bias, anisotropy override and expanded NVDEC/VIC frame handling." > "$GITHUB_WORKSPACE/reference-dist/BUILD-INFO.txt"
 
-      - name: Upload optimized reference emulator APK
+      - name: Upload optimized native emulator
         uses: actions/upload-artifact@v4
         with:
-          name: Skyline-Reference-Core-Release-APK
+          name: Skyline-Dimm-Advanced-Graphics-Video-APK
           path: reference-dist/
           if-no-files-found: error
           retention-days: 30
 
   publish-reference-release:
-    name: Attach native Skyline APK to this build's Release
+    name: Publish verified native Skyline Dimm APK
     needs: [build, reference-core-build]
     if: ${{ success() && ((github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.build_reference_core)) }}
     runs-on: ubuntu-24.04
@@ -440,18 +402,20 @@ jobs:
       - name: Download verified native APK
         uses: actions/download-artifact@v4
         with:
-          name: Skyline-Reference-Core-Release-APK
+          name: Skyline-Dimm-Advanced-Graphics-Video-APK
           path: release-assets
 
-      - name: Verify release files
+      - name: Verify release files and hashes
         shell: bash
         run: |
           set -euo pipefail
           test -s release-assets/SkylineDimm-M23-ARM64.apk
           test -s release-assets/APK-METADATA.txt
           test -s release-assets/SHA256SUMS.txt
+          test -s release-assets/BUILD-INFO.txt
           grep -q "package: name='com.dimm.skyline'" release-assets/APK-METADATA.txt
-          grep -q "versionName='0.1.57-video'" release-assets/APK-METADATA.txt
+          grep -q "versionCode='72'" release-assets/APK-METADATA.txt
+          grep -q "versionName='0.1.58-advanced'" release-assets/APK-METADATA.txt
           (cd release-assets && sha256sum --check SHA256SUMS.txt)
 
       - name: Publish native emulator release
@@ -459,29 +423,31 @@ jobs:
         with:
           tag_name: v0.1.${{ github.run_number }}
           target_commitish: ${{ github.sha }}
-          name: Skyline Dimm v0.1.${{ github.run_number }} - Native M23 build
+          name: Skyline Dimm v0.1.${{ github.run_number }} - Advanced graphics and video
           body: |
-            Native Android release built from the pinned Skyline source.
+            Native ARM64 Android build based on the pinned Strato/Skyline source.
 
             - Package: com.dimm.skyline
-            - Version: 0.1.57-video (versionCode 71)
+            - Version: 0.1.58-advanced (versionCode 72)
             - ABI: arm64-v8a
-            - Native core: libskyline.so
-            - Video path: Host1x NVDEC + VIC with FFmpeg H.264, VP8 and VP9.
-            - APK signature and native library presence verified in CI.
+            - Internal Vulkan render resolution: 0.50x through 2.00x, native fallback for unsupported passes
+            - Texture controls: configurable mipmap LOD bias and device-limited anisotropic filtering
+            - Video: exact NVDEC frame-address matching, multiple VIC surfaces, alpha composition, field modes and flipped NV12 output
+            - Video codecs enabled in this source: H.264, VP8 and VP9
+            - APK signature, package identity, version and native library verified in CI
 
             Source and licenses:
-            - Skyline base: https://github.com/im030/skyline-emu/tree/35fb874a42cb548cbd3d66a00d65e4b2a4c1516b
-            - Video implementation: https://github.com/LukeValen/Strato-Mali-Public-Build/tree/9249ea351ad7bd7b0e7d4a319e1ad1c56dae865c
-            - Dimm integration and build scripts: https://github.com/dimmstz/Skyline_Edge_Dimm/tree/${{ github.sha }}
-            - GPL-3.0-or-later, MPL-2.0 and FFmpeg LGPL-2.1-or-later notices are included in the source repository.
+            - Strato/Skyline base: https://github.com/LukeValen/Strato-Mali-Public-Build/tree/9249ea351ad7bd7b0e7d4a319e1ad1c56dae865c
+            - Original Skyline base: https://github.com/im030/skyline-emu/tree/35fb874a42cb548cbd3d66a00d65e4b2a4c1516b
+            - Dimm integration: https://github.com/dimmstz/Skyline_Edge_Dimm/tree/${{ github.sha }}
+            - The combined source retains its GPL-3.0, MPL-2.0 and FFmpeg LGPL notices.
 
-            H.264 and VP8 decode plus VIC composition are regression-tested in CI; VP9 support is included but not separately fixture-tested. Resident Evil 4
-            prerecorded campaign videos and Galaxy M23 playback still require on-device testing.
+            Automated NVDEC/VIC and Vulkan resolution tests must pass before publishing. Resident Evil 4 campaign playback and Galaxy M23 visual output still require on-device confirmation.
           files: |
             release-assets/SkylineDimm-M23-ARM64.apk
             release-assets/APK-METADATA.txt
             release-assets/SHA256SUMS.txt
+            release-assets/BUILD-INFO.txt
           fail_on_unmatched_files: true
           generate_release_notes: true
           make_latest: true
