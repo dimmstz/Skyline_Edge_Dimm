@@ -499,6 +499,9 @@ print("Applied Dimm advanced graphics settings: Vulkan resolution scale, mipmap 
 edit("app/src/main/cpp/skyline/gpu.cpp", [
     ("""        LOGI("Internal resolution scale: {}x (texture-cache scaling)", resolutionScale.Factor());
 """, """        LOGI("Internal resolution scale: {}x (texture-cache scaling)", resolutionScale.Factor());
+        LOGI("[PERF] InternalScale={}x mipmapLodBias={} anisotropyOverride={} shaderCache={} frameThrottling={}",
+             resolutionScale.Factor(), MipmapLodBias(), MaxAnisotropy(),
+             !*state.settings->disableShaderCache, !*state.settings->disableFrameThrottling);
         const auto deviceProperties{vkPhysicalDevice.getProperties()};
         LOGI("[VFX-OPT] GPU={} vendor=0x{:04X} device=0x{:04X} driverVersion={} VulkanApi={}.{}.{}",
              deviceProperties.deviceName, traits.vendorId, traits.deviceId, traits.driverVersion,
