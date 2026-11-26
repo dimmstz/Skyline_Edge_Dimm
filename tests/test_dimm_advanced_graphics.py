@@ -78,6 +78,18 @@ for translated in ("Configurações", "Gráficos", "Pastas de jogos", "Drivers g
     if translated not in pt_settings_text:
         raise SystemExit(f"Missing Brazilian Portuguese settings translation: {translated}")
 
+for resource_file, expected in (
+    ("setup.xml", ("Bem-vindo ao Skyline Dimm", "Começar a jogar", "Importando chaves")),
+    ("emulation_menu.xml", ("Continuar jogo", "Controles na tela", "Sair do jogo")),
+):
+    translated_file = root / "app/src/main/res/values-pt-rBR" / resource_file
+    if not translated_file.is_file():
+        raise SystemExit(f"Portuguese resource not generated: {resource_file}")
+    translated_text = translated_file.read_text(encoding="utf-8")
+    for translated in expected:
+        if translated not in translated_text:
+            raise SystemExit(f"Missing translation in {resource_file}: {translated}")
+
 pt_arrays = root / "app/src/main/res/values-pt-rBR/array.xml"
 if not pt_arrays.is_file():
     raise SystemExit("Portuguese preference arrays were not generated")
