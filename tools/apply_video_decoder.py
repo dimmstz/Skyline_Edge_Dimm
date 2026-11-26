@@ -12,7 +12,8 @@ root = Path(sys.argv[1]).resolve()
 cpp = root / "app/src/main/cpp"
 vendor = project / "third_party/strato-video"
 integration = project / "third_party/strato-video-integration"
-soc = cpp / "skyline/soc"\nhost = soc / "host1x"
+soc = cpp / "skyline/soc"
+host = soc / "host1x"
 
 required = [
     root / "app/CMakeLists.txt",
