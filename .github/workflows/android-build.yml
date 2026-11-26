@@ -210,6 +210,7 @@ jobs:
       version_name: ${{ steps.version.outputs.version_name }}
       version_code: ${{ steps.version.outputs.version_code }}
       release_tag: ${{ steps.version.outputs.release_tag }}
+      persistent_signing: ${{ steps.signing.outputs.persistent }}
     if: ${{ (github.event_name == 'workflow_dispatch' && inputs.build_reference_core) || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/fix/re4-video-decoder' || github.ref == 'refs/heads/feat/advanced-graphics-video-m23')) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 180
@@ -322,7 +323,8 @@ jobs:
           set -o pipefail
           "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --install "platform-tools" "platforms;android-34" "build-tools;34.0.0" "ndk;26.1.10909125" "cmake;3.22.1"
 
-      - name: Configure persistent Android release signing
+      - name: Configure Android release signing
+        id: signing
         shell: bash
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -331,16 +333,21 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          for name in ANDROID_KEYSTORE_BASE64 ANDROID_STORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
-            if [ -z "${!name:-}" ]; then
-              echo "::error::Missing repository secret $name. A persistent keystore is required so every APK update uses the same certificate."
-              exit 1
-            fi
-          done
           KEYSTORE_PATH="$RUNNER_TEMP/skyline-release.jks"
-          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
-          test -s "$KEYSTORE_PATH"
-          keytool -list -keystore "$KEYSTORE_PATH" -storepass "$ANDROID_STORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" >/dev/null
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ] && [ -n "$ANDROID_STORE_PASSWORD" ] && [ -n "$ANDROID_KEY_ALIAS" ] && [ -n "$ANDROID_KEY_PASSWORD" ]; then
+            printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+            test -s "$KEYSTORE_PATH"
+            keytool -list -keystore "$KEYSTORE_PATH" -storepass "$ANDROID_STORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" >/dev/null
+            echo "persistent=true" >> "$GITHUB_OUTPUT"
+            echo "Using repository release keystore."
+          else
+            echo "::warning::Persistent signing secrets are incomplete. Building a test-only APK; it will not be published as a release and will not update an existing installation."
+            ANDROID_STORE_PASSWORD="$(openssl rand -hex 24)"
+            ANDROID_KEY_PASSWORD="$ANDROID_STORE_PASSWORD"
+            ANDROID_KEY_ALIAS="skyline-ci-temporary"
+            keytool -genkeypair -noprompt -keystore "$KEYSTORE_PATH" -storepass "$ANDROID_STORE_PASSWORD" -keypass "$ANDROID_KEY_PASSWORD" -alias "$ANDROID_KEY_ALIAS" -keyalg RSA -keysize 2048 -validity 2 -dname "CN=Skyline Dimm CI,O=Dimm,C=BR" >/dev/null 2>&1
+            echo "persistent=false" >> "$GITHUB_OUTPUT"
+          fi
           {
             echo "ANDROID_KEYSTORE_PATH=$KEYSTORE_PATH"
             echo "ANDROID_STORE_PASSWORD=$ANDROID_STORE_PASSWORD"
@@ -387,7 +394,11 @@ jobs:
             cd "$GITHUB_WORKSPACE/reference-dist"
             sha256sum SkylineDimm-M23-ARM64.apk > SHA256SUMS.txt
           )
-          printf '%s\n' "Native Strato/Skyline ARM64 build; Vulkan resolution scaling, mipmap LOD bias, anisotropy override and expanded NVDEC/VIC frame handling." > "$GITHUB_WORKSPACE/reference-dist/BUILD-INFO.txt"
+          if [ "${{ steps.signing.outputs.persistent }}" = "true" ]; then
+            printf '%s\n' "Native Strato/Skyline ARM64 release build with persistent signing; Vulkan resolution scaling, mipmap LOD bias, anisotropy override and expanded NVDEC/VIC frame handling." > "$GITHUB_WORKSPACE/reference-dist/BUILD-INFO.txt"
+          else
+            printf '%s\n' "TEST-ONLY native Strato/Skyline ARM64 build signed with a temporary CI key. This APK cannot update another installation. Configure all four Android signing secrets before creating a distributable release." > "$GITHUB_WORKSPACE/reference-dist/BUILD-INFO.txt"
+          fi
 
       - name: Upload optimized native emulator
         uses: actions/upload-artifact@v4
@@ -400,7 +411,7 @@ jobs:
   publish-reference-release:
     name: Publish verified native Skyline Dimm APK
     needs: [build, reference-core-build]
-    if: ${{ success() && ((github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.build_reference_core)) }}
+    if: ${{ success() && needs.reference-core-build.outputs.persistent_signing == 'true' && ((github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.build_reference_core)) }}
     runs-on: ubuntu-24.04
     steps:
       - name: Download verified native APK
