@@ -95,9 +95,9 @@ replace_once(cmake,
 needle = 'target_link_libraries_system(skyline '
 text = cmake.read_text(encoding="utf-8")
 line = next((line for line in text.splitlines() if line.startswith(needle)), None)
-if line is None or "strato_video" in line:
-    raise SystemExit("Could not safely locate Skyline target link line")
-cmake.write_text(text.replace(line, line + " strato_video", 1), encoding="utf-8")
+if line is None or "strato_video" in line or not line.rstrip().endswith(")"):
+    raise SystemExit("Could not safely locate a single-line Skyline target link call")
+cmake.write_text(text.replace(line, line.rstrip()[:-1] + " strato_video)", 1), encoding="utf-8")
 
 print("Applied Host1x NVDEC/VIC video decoder integration.")
 print("Enabled FFmpeg H.264, VP8 and VP9 decode plus VIC surface composition.")
