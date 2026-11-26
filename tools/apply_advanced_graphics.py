@@ -258,21 +258,21 @@ resources.write_text("""<?xml version="1.0" encoding="utf-8"?>
 # A measured, conservative performance profile maps only to existing real renderer
 # controls. It never disables frame pacing, shader/pipeline caches or video paths.
 edit("app/src/main/java/org/stratoemu/strato/settings/EmulationSettings.kt", [
-    ("    var resolutionScale by sharedPreferences(context, 2, prefName = prefName)\\n",
-     "    var resolutionScale by sharedPreferences(context, 2, prefName = prefName)\\n"
-     "    var performanceProfile by sharedPreferences(context, 0, prefName = prefName)\\n"
-     "    val effectiveResolutionScale: Int get() = when (performanceProfile) { 1 -> 1; 2 -> 0; else -> resolutionScale }\\n"
-     "    val effectiveMipmapLodBias: Int get() = when (performanceProfile) { 1 -> 1; 2 -> 3; else -> mipmapLodBias }\\n"
-     "    val effectiveMaxAnisotropy: Int get() = when (performanceProfile) { 1 -> 2; 2 -> 1; else -> maxAnisotropy }\\n")
+    ("    var resolutionScale by sharedPreferences(context, 2, prefName = prefName)\n",
+     "    var resolutionScale by sharedPreferences(context, 2, prefName = prefName)\n"
+     "    var performanceProfile by sharedPreferences(context, 0, prefName = prefName)\n"
+     "    val effectiveResolutionScale: Int get() = when (performanceProfile) { 1 -> 1; 2 -> 0; else -> resolutionScale }\n"
+     "    val effectiveMipmapLodBias: Int get() = when (performanceProfile) { 1 -> 1; 2 -> 3; else -> mipmapLodBias }\n"
+     "    val effectiveMaxAnisotropy: Int get() = when (performanceProfile) { 1 -> 2; 2 -> 1; else -> maxAnisotropy }\n")
 ])
 
 edit("app/src/main/java/org/stratoemu/strato/settings/NativeSettings.kt", [
-    ("        pref.resolutionScale,\\n"
-     "        pref.mipmapLodBias,\\n"
-     "        pref.maxAnisotropy\\n",
-     "        pref.effectiveResolutionScale,\\n"
-     "        pref.effectiveMipmapLodBias,\\n"
-     "        pref.effectiveMaxAnisotropy\\n")
+    ("        pref.resolutionScale,\n"
+     "        pref.mipmapLodBias,\n"
+     "        pref.maxAnisotropy\n",
+     "        pref.effectiveResolutionScale,\n"
+     "        pref.effectiveMipmapLodBias,\n"
+     "        pref.effectiveMaxAnisotropy\n")
 ])
 
 edit("app/src/main/java/org/stratoemu/strato/settings/GlobalSettingsFragment.kt", [
@@ -281,10 +281,10 @@ edit("app/src/main/java/org/stratoemu/strato/settings/GlobalSettingsFragment.kt"
 ])
 
 edit("app/src/main/java/org/stratoemu/strato/EmulationActivity.kt", [
-    ('                        text = "$fps FPS • $ramUsage MB"\\n',
-     '                        val frameTime = String.format(java.util.Locale.US, "%.1f", averageFrametime)\\n'
-     '                        val frameJitter = String.format(java.util.Locale.US, "%.1f", averageFrametimeDeviation)\\n'
-     '                        text = "$fps FPS • $frameTime ms ±$frameJitter • $ramUsage MB"\\n')
+    ('                        text = "$fps FPS • $ramUsage MB"\n',
+     '                        val frameTime = String.format(java.util.Locale.US, "%.1f", averageFrametime)\n'
+     '                        val frameJitter = String.format(java.util.Locale.US, "%.1f", averageFrametimeDeviation)\n'
+     '                        text = "$fps FPS • $frameTime ms ±$frameJitter • $ramUsage MB"\n')
 ])
 
 # Resolve the decoded frame by its exact guest surface address. The previous FIFO-only
