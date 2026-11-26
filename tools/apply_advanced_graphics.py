@@ -240,7 +240,7 @@ resources.write_text("""<?xml version="1.0" encoding="utf-8"?>
     <string name="max_anisotropy_desc">Overrides game-provided texture anisotropy when supported by the GPU. Higher values can improve angled surfaces but may cost performance. Restart the game after changing.</string>
     <string name="performance_profile">Performance profile</string>
     <string name="performance_profile_desc">Applies a preset to the existing internal resolution, mipmap LOD bias and anisotropy controls. Changes take effect when the game is restarted. Custom keeps your individual values.</string>
-    <string-array name="performance_profile_entries" translatable="false">
+    <string-array name="performance_profile_entries">
         <item>Custom</item><item>Balanced FPS (0.75x)</item><item>Performance (0.50x)</item>
     </string-array>
     <integer-array name="performance_profile_values">
