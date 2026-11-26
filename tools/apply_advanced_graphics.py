@@ -37,7 +37,7 @@ def edit(relative: str, replacements: list[tuple[str, str]]) -> None:
 edit("app/build.gradle", [
     ('applicationId "com.lukevalen.stratomali"', 'applicationId "com.dimm.skyline"'),
     ("buildConfigField 'String', 'RELEASE_VERSION', '\"0.0.4-1\"'",
-     "buildConfigField 'String', 'RELEASE_VERSION', '\"0.1.59-advanced\"'"),
+     f"buildConfigField 'String', 'RELEASE_VERSION', '\\"{VERSION_NAME}\\"'"),
     ("versionCode getGitVersionCode()", f"versionCode {VERSION_CODE}"),
     ('versionName "0.0.4-1"', f'versionName "{VERSION_NAME}"'),
 ])
