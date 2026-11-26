@@ -272,7 +272,7 @@ if 'android:name="pt-BR"' not in locale_data:
     closing = "</locale-config>"
     if locale_data.count(closing) != 1:
         raise SystemExit("Não foi possível localizar o fechamento de locales_config.xml")
-    locale_data = locale_data.replace(closing, '    <locale android:name="pt-BR" /> <!-- Português do Brasil -->\\n' + closing, 1)
+    locale_data = locale_data.replace(closing, '    <locale android:name="pt-BR" /> <!-- Português do Brasil -->\n' + closing, 1)
     locale_config.write_text(locale_data, encoding="utf-8")
 if 'android:name="pt-BR"' not in locale_config.read_text(encoding="utf-8"):
     raise SystemExit("O idioma pt-BR não foi registrado no seletor de idiomas")
