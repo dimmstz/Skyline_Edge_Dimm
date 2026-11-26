@@ -76,6 +76,7 @@ edit("app/src/main/cpp/skyline/gpu.h", [
 ])
 
 edit("app/src/main/cpp/skyline/gpu/interconnect/common/samplers.cpp", [
+    ('#include <soc/gm20b/channel.h>\n', '#include <algorithm>\n#include <soc/gm20b/channel.h>\n'),
     ('            auto maxAnisotropy{texSampler.MaxAnisotropy()};\n',
      '            auto maxAnisotropy{texSampler.MaxAnisotropy()};\n'
      '            const auto requestedAnisotropy{ctx.gpu.MaxAnisotropy()};\n'
