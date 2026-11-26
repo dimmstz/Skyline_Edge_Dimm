@@ -42,7 +42,7 @@ checks = {
     "Resolution and texture UI": ("app/src/main/res/xml/emulation_preferences.xml",
                                   ['app:key="mipmap_lod_bias"', 'app:key="max_anisotropy"', 'app:key="resolution_scale"', 'app:key="performance_profile"']),
     "GPU settings section visibility": ("app/src/main/java/org/stratoemu/strato/settings/GlobalSettingsFragment.kt",
-                                        ['"mipmap_lod_bias"', '"max_anisotropy"']),
+                                        ['"mipmap_lod_bias"', '"max_anisotropy"', '"performance_profile"']),
     "Exact NVDEC frame address match": ("app/src/main/cpp/skyline/soc/host1x/video/video_core/host1x/host1x.h",
                                         ["if (it->first == offset)", "m_decode_order.find(offset)"]),
     "VIC multi-layer and alpha handling": ("app/src/main/cpp/skyline/soc/host1x/video/video_core/host1x/vic_processor.cpp",
