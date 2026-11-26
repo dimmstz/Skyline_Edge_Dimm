@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+"""Static end-to-end assertions for the Dimm settings-to-Vulkan and VIC patches."""
+from pathlib import Path
+import sys
+
+if len(sys.argv) != 2:
+    raise SystemExit("usage: test_dimm_advanced_graphics.py <patched-source-root>")
+root = Path(sys.argv[1])
+
+def read(path):
+    p = root / path
+    if not p.is_file():
+        raise SystemExit(f"Missing patched source: {path}")
+    return p.read_text(encoding="utf-8")
+
+checks = {
+    "Android preference model": ("app/src/main/java/org/stratoemu/strato/settings/EmulationSettings.kt",
+                                 ["mipmapLodBias", "maxAnisotropy"]),
+    "Native settings serialization": ("app/src/main/java/org/stratoemu/strato/settings/NativeSettings.kt",
+                                       ["pref.mipmapLodBias", "pref.maxAnisotropy"]),
+    "JNI settings bridge": ("app/src/main/cpp/skyline/common/android_settings.h",
+                            ['GetInt<int>("mipmapLodBias")', 'GetInt<int>("maxAnisotropy")']),
+    "Native settings storage": ("app/src/main/cpp/skyline/common/settings.h",
+                                ["Setting<int> mipmapLodBias", "Setting<int> maxAnisotropy"]),
+    "Vulkan sampler LOD bias": ("app/src/main/cpp/skyline/gpu/interconnect/common/samplers.cpp",
+                                ["ctx.gpu.MipmapLodBias()", "deviceLimits.maxSamplerLodBias", ".mipLodBias = mipLodBias"]),
+    "Vulkan anisotropy override": ("app/src/main/cpp/skyline/gpu/interconnect/common/samplers.cpp",
+                                   ["ctx.gpu.MaxAnisotropy()", "deviceLimits.maxSamplerAnisotropy"]),
+    "Resolution and texture UI": ("app/src/main/res/xml/emulation_preferences.xml",
+                                  ['app:key="mipmap_lod_bias"', 'app:key="max_anisotropy"', 'app:key="resolution_scale"']),
+    "GPU settings section visibility": ("app/src/main/java/org/stratoemu/strato/settings/GlobalSettingsFragment.kt",
+                                        ['"mipmap_lod_bias"', '"max_anisotropy"']),
+    "Exact NVDEC frame address match": ("app/src/main/cpp/skyline/soc/host1x/video/video_core/host1x/host1x.h",
+                                        ["if (it->first == offset)", "m_decode_order.find(offset)"]),
+    "VIC multi-layer and alpha handling": ("app/src/main/cpp/skyline/soc/host1x/video/video_core/host1x/vic_processor.cpp",
+                                           ["Pixel Composite(", "destination = p.a >= 1023 ? p : Composite(p, destination)"]),
+    "Dimm package identity": ("app/build.gradle",
+                              ['applicationId "com.dimm.skyline"', 'versionCode 72', 'versionName "0.1.58-advanced"']),
+}
+
+for label, (path, needles) in checks.items():
+    source = read(path)
+    missing = [needle for needle in needles if needle not in source]
+    if missing:
+        raise SystemExit(f"{label}: missing expected implementation: {missing}")
+
+vic = read("app/src/main/cpp/skyline/soc/host1x/video/video_core/host1x/vic_processor.cpp")
+for obsolete in (
+    "VIC alpha/multiple-slot composition is not implemented",
+    "VIC interlaced output is not implemented",
+    "VIC flipped NV12 output is not implemented",
+):
+    if obsolete in vic:
+        raise SystemExit(f"VIC still contains an obsolete abort path: {obsolete}")
+
+print(f"PASS: {len(checks)} end-to-end graphics/video integration checks.")
