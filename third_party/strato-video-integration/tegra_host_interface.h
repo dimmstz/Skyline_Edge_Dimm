@@ -4,6 +4,7 @@
 #pragma once
 
 #include <queue>
+#include <utility>
 #include <common.h>
 #include "syncpoint.h"
 #include "classes/class.h"
