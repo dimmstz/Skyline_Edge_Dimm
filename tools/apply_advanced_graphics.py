@@ -7,6 +7,19 @@ if len(sys.argv) != 2:
     raise SystemExit("usage: apply_advanced_graphics.py <strato-source-root>")
 
 root = Path(sys.argv[1]).resolve()
+project_root = Path(__file__).resolve().parents[1]
+version_file = project_root / "version.properties"
+version_values = {}
+for line in version_file.read_text(encoding="utf-8").splitlines():
+    line = line.strip()
+    if line and not line.startswith("#") and "=" in line:
+        key, value = line.split("=", 1)
+        version_values[key.strip()] = value.strip()
+VERSION_NAME = version_values["VERSION_NAME"]
+VERSION_CODE = int(version_values["VERSION_CODE"])
+RELEASE_TAG = version_values["RELEASE_TAG"]
+if not VERSION_NAME or VERSION_CODE < 1 or not RELEASE_TAG.startswith("v"):
+    raise SystemExit("Invalid version.properties: set VERSION_NAME, positive VERSION_CODE and RELEASE_TAG")
 
 def edit(relative: str, replacements: list[tuple[str, str]]) -> None:
     path = root / relative
@@ -25,8 +38,8 @@ edit("app/build.gradle", [
     ('applicationId "com.lukevalen.stratomali"', 'applicationId "com.dimm.skyline"'),
     ("buildConfigField 'String', 'RELEASE_VERSION', '\"0.0.4-1\"'",
      "buildConfigField 'String', 'RELEASE_VERSION', '\"0.1.59-advanced\"'"),
-    ("versionCode getGitVersionCode()", "versionCode 73"),
-    ('versionName "0.0.4-1"', 'versionName "0.1.59-advanced"'),
+    ("versionCode getGitVersionCode()", f"versionCode {VERSION_CODE}"),
+    ('versionName "0.0.4-1"', f'versionName "{VERSION_NAME}"'),
 ])
 
 edit("app/src/main/res/values/strings.xml", [

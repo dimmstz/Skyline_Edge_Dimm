@@ -3,6 +3,16 @@
 from pathlib import Path
 import sys
 
+project_root = Path(__file__).resolve().parents[1]
+version_values = {}
+for line in (project_root / "version.properties").read_text(encoding="utf-8").splitlines():
+    line = line.strip()
+    if line and not line.startswith("#") and "=" in line:
+        key, value = line.split("=", 1)
+        version_values[key.strip()] = value.strip()
+VERSION_NAME = version_values["VERSION_NAME"]
+VERSION_CODE = version_values["VERSION_CODE"]
+
 if len(sys.argv) != 2:
     raise SystemExit("usage: test_dimm_advanced_graphics.py <patched-source-root>")
 root = Path(sys.argv[1])
@@ -38,7 +48,7 @@ checks = {
     "VIC multi-layer and alpha handling": ("app/src/main/cpp/skyline/soc/host1x/video/video_core/host1x/vic_processor.cpp",
                                            ["Pixel Composite(", "destination = p.a >= 1023 ? p : Composite(p, destination)"]),
     "Dimm package identity": ("app/build.gradle",
-                              ['applicationId "com.dimm.skyline"', 'versionCode 73', 'versionName "0.1.59-advanced"']),
+                              ['applicationId "com.dimm.skyline"', f"versionCode {VERSION_CODE}", f'versionName "{VERSION_NAME}"']),
 }
 
 for label, (path, needles) in checks.items():

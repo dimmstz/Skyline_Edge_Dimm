@@ -253,6 +253,10 @@ jobs:
 
   reference-core-build:
     name: Build Strato graphics/video core for Skyline Dimm
+    outputs:
+      version_name: ${{ steps.version.outputs.version_name }}
+      version_code: ${{ steps.version.outputs.version_code }}
+      release_tag: ${{ steps.version.outputs.release_tag }}
     if: ${{ (github.event_name == 'workflow_dispatch' && inputs.build_reference_core) || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/fix/re4-video-decoder' || github.ref == 'refs/heads/feat/advanced-graphics-video-m23')) || github.event_name == 'pull_request' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 180
@@ -293,6 +297,21 @@ jobs:
           set -euo pipefail
           sudo apt-get update
           sudo apt-get install -y libavcodec-dev libavutil-dev libvulkan-dev mesa-vulkan-drivers vulkan-validationlayers glslang-tools ninja-build ccache
+
+      - name: Resolve canonical application version
+        id: version
+        working-directory: project
+        shell: bash
+        run: |
+          set -euo pipefail
+          source version.properties
+          [[ "$VERSION_NAME" =~ ^[0-9]+\\.[0-9]+\\.[0-9]+([.-][A-Za-z0-9.-]+)?$ ]]
+          [[ "$VERSION_CODE" =~ ^[1-9][0-9]*$ ]]
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\\.[0-9]+\\.[0-9]+$ ]]
+          echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+          echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+          echo "release_tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+          echo "Building $VERSION_NAME ($VERSION_CODE), release tag $RELEASE_TAG"
 
       - name: Apply Dimm graphics controls and VIC/frame-queue fixes
         run: python3 project/tools/apply_advanced_graphics.py reference/strato
@@ -378,8 +397,8 @@ jobs:
           APKSIGNER="$ANDROID_HOME/build-tools/34.0.0/apksigner"
           "$AAPT" dump badging "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.apk" > "$GITHUB_WORKSPACE/reference-dist/APK-METADATA.txt"
           grep -q "package: name='com.dimm.skyline'" "$GITHUB_WORKSPACE/reference-dist/APK-METADATA.txt"
-          grep -q "versionCode='73'" "$GITHUB_WORKSPACE/reference-dist/APK-METADATA.txt"
-          grep -q "versionName='0.1.59-advanced'" "$GITHUB_WORKSPACE/reference-dist/APK-METADATA.txt"
+          grep -q "versionCode='${{ steps.version.outputs.version_code }}'" "$GITHUB_WORKSPACE/reference-dist/APK-METADATA.txt"
+          grep -q "versionName='${{ steps.version.outputs.version_name }}'" "$GITHUB_WORKSPACE/reference-dist/APK-METADATA.txt"
           "$APKSIGNER" verify --verbose "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.apk"
           unzip -l "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.apk" | grep -q 'lib/arm64-v8a/libskyline.so'
           (
@@ -417,21 +436,21 @@ jobs:
           test -s release-assets/SHA256SUMS.txt
           test -s release-assets/BUILD-INFO.txt
           grep -q "package: name='com.dimm.skyline'" release-assets/APK-METADATA.txt
-          grep -q "versionCode='73'" release-assets/APK-METADATA.txt
-          grep -q "versionName='0.1.59-advanced'" release-assets/APK-METADATA.txt
+          grep -q "versionCode='${{ needs.reference-core-build.outputs.version_code }}'" release-assets/APK-METADATA.txt
+          grep -q "versionName='${{ needs.reference-core-build.outputs.version_name }}'" release-assets/APK-METADATA.txt
           (cd release-assets && sha256sum --check SHA256SUMS.txt)
 
       - name: Publish native emulator release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.${{ github.run_number }}
+          tag_name: ${{ needs.reference-core-build.outputs.release_tag }}
           target_commitish: ${{ github.sha }}
-          name: Skyline Dimm v0.1.${{ github.run_number }} - Advanced graphics and video
+          name: Skyline Dimm ${{ needs.reference-core-build.outputs.version_name }} - Advanced graphics and video
           body: |
             Native ARM64 Android build based on the pinned Strato/Skyline source.
 
             - Package: com.dimm.skyline
-            - Version: 0.1.59-advanced (versionCode 73)
+            - Version: ${{ needs.reference-core-build.outputs.version_name }} (versionCode ${{ needs.reference-core-build.outputs.version_code }})
             - ABI: arm64-v8a
             - Internal Vulkan render resolution: 0.50x through 2.00x, native fallback for unsupported passes
             - Texture controls: configurable mipmap LOD bias and device-limited anisotropic filtering
@@ -455,9 +474,8 @@ jobs:
           generate_release_notes: true
           make_latest: true
 
-# Automatic publishing policy:
-# - Every successful push to main gets a unique v0.1.<run_number> tag and Release.
-# - The Android APK/AAB are published by the build job.
-# - If the optional native reference build runs, its APK is attached to that same Release.
+# Versioning policy:
+# - version.properties is the single source of truth for VERSION_NAME, VERSION_CODE and RELEASE_TAG.
+# - Bump all three values together for each intended native release.
+# - A successful main build publishes the native APK under RELEASE_TAG; run numbers never become app versions.
 # - Tag-triggered runs are skipped to prevent recursive duplicate builds/releases.
-# - Prefix build-reference-core: on main to request the optional native build.
