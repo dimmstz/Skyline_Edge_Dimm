@@ -35,6 +35,15 @@ if not any(p.is_file() for p in video_files):
 target_video = host / "video"
 shutil.copytree(vendor, target_video, dirs_exist_ok=True)
 
+test_vendor = project / "third_party/strato-video-tests"
+test_target = root / "tests"
+test_target.mkdir(parents=True, exist_ok=True)
+for name in ["test_video_pipeline.py", "test_video_completion.py", "video_pipeline_test.cpp"]:
+    source = test_vendor / name
+    if not source.is_file():
+        raise SystemExit(f"Vendored video regression test is missing: {source}")
+    shutil.copy2(source, test_target / name)
+
 for name, destination in [
     ("nvdec.cpp", host / "classes/nvdec.cpp"),
     ("nvdec.h", host / "classes/nvdec.h"),
