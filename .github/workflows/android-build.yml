@@ -379,8 +379,8 @@ jobs:
           source = path.read_text(encoding="utf-8")
           replacements = {
               'applicationId "skyline.emu"': 'applicationId "com.dimm.skyline"',
-              'versionCode 3': 'versionCode 70',
-              'versionName "0.0.3"': 'versionName "0.1.0-dimm"',
+              'versionCode 3': 'versionCode 71',
+              'versionName "0.0.3"': 'versionName "0.1.57-video"',
               'manifestPlaceholders += [appLabel: "Skyline"]': 'manifestPlaceholders += [appLabel: "Skyline Dimm"]',
           }
           for old, new in replacements.items():
