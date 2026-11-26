@@ -1,10 +1,12 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
 }
 
-val skylineVersion = java.util.Properties().apply {
-    rootProject.file("version.properties").inputStream().use { load(it) }
+val skylineVersion = Properties().apply {
+    rootProject.file("version.properties").inputStream().use { this.load(it) }
 }
 
 val releaseStorePath = System.getenv("ANDROID_KEYSTORE_PATH")
