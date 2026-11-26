@@ -265,13 +265,19 @@ Pixel Composite(Pixel source, Pixel destination) {
             if (sy >= u32(frame->GetHeight())) continue;
             for (u32 x = clipLeft; x < clipRight; ++x) {
 """,
-"""            u64 sourceY = sy0 + u64(y - top) * (sy1 - sy0) / (bottom - top);
-            if (frameFormat == DxvhadFrameFormat::TopField ||
-                frameFormat == DxvhadFrameFormat::InterlacedTopFieldFirst)
-                sourceY *= 2;
-            else if (frameFormat == DxvhadFrameFormat::BottomField ||
-                     frameFormat == DxvhadFrameFormat::InterlacedBottomFieldFirst)
-                sourceY = sourceY * 2 + 1;
+"""            u64 sourceY;
+            if (frameFormat == DxvhadFrameFormat::Progressive) {
+                sourceY = sy0 + u64(y - top) * (sy1 - sy0) / (bottom - top);
+            } else {
+                // Bob the selected field: sample alternating source lines and duplicate each
+                // into the two destination scanlines.
+                const u64 destinationFieldHeight = std::max<u64>(1, (bottom - top + 1) / 2);
+                const u64 fieldLine = (y - top) / 2;
+                sourceY = sy0 + fieldLine * (sy1 - sy0) / destinationFieldHeight;
+                const bool bottomField = frameFormat == DxvhadFrameFormat::BottomField ||
+                                         frameFormat == DxvhadFrameFormat::InterlacedBottomFieldFirst;
+                sourceY = sourceY * 2 + (bottomField ? 1 : 0);
+            }
             if (sourceY >= u32(frame->GetHeight())) continue;
             const u32 sy = static_cast<u32>(sourceY);
             for (u32 x = clipLeft; x < clipRight; ++x) {
