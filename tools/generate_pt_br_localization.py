@@ -300,11 +300,16 @@ advanced = {
     "mipmap_lod_bias":"Ajuste de nível de detalhe (Mipmaps)",
     "mipmap_lod_bias_desc":"Valores positivos selecionam mipmaps de menor resolução à distância e podem reduzir o uso de banda de memória. Valores negativos deixam texturas distantes mais nítidas, mas podem causar cintilação. Reinicie o jogo após alterar.",
     "max_anisotropy":"Filtragem anisotrópica",
-    "max_anisotropy_desc":"Substitui a anisotropia definida pelo jogo quando compatível com a GPU. Valores maiores podem melhorar superfícies em ângulo, mas reduzir o desempenho. Reinicie o jogo após alterar."
+    "max_anisotropy_desc":"Substitui a anisotropia definida pelo jogo quando compatível com a GPU. Valores maiores podem melhorar superfícies em ângulo, mas reduzir o desempenho. Reinicie o jogo após alterar.",
+    "performance_profile":"Perfil de desempenho",
+    "performance_profile_desc":"Aplica um perfil aos controles existentes de resolução interna, Mipmap LOD bias e anisotropia. As alterações entram em vigor ao reiniciar o jogo. Personalizado mantém seus valores individuais."
 }
 res = ET.Element("resources")
 for key, value in advanced.items():
     ET.SubElement(res, "string", {"name":key}).text = value
+profile_entries = ET.SubElement(res, "string-array", {"name":"performance_profile_entries"})
+for value in ("Personalizado", "FPS equilibrado (0,75x)", "Desempenho (0,50x)"):
+    ET.SubElement(profile_entries, "item").text = value
 ET.indent(res, space="    ")
 ET.ElementTree(res).write(locale / "dimm_advanced_graphics.xml", encoding="utf-8", xml_declaration=True)
 
