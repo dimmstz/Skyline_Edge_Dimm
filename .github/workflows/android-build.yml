@@ -451,7 +451,7 @@ jobs:
           test -s release-assets/APK-METADATA.txt
           test -s release-assets/SHA256SUMS.txt
           grep -q "package: name='com.dimm.skyline'" release-assets/APK-METADATA.txt
-          grep -q "versionName='0.1.0-dimm'" release-assets/APK-METADATA.txt
+          grep -q "versionName='0.1.57-video'" release-assets/APK-METADATA.txt
           (cd release-assets && sha256sum --check SHA256SUMS.txt)
 
       - name: Publish native emulator release
@@ -464,13 +464,20 @@ jobs:
             Native Android release built from the pinned Skyline source.
 
             - Package: com.dimm.skyline
-            - Version: 0.1.0-dimm (versionCode 70)
+            - Version: 0.1.57-video (versionCode 71)
             - ABI: arm64-v8a
             - Native core: libskyline.so
+            - Video path: Host1x NVDEC + VIC with FFmpeg H.264, VP8 and VP9.
             - APK signature and native library presence verified in CI.
 
-            This is a rebranded upstream reference build. Galaxy M23 runtime compatibility,
-            game boot, graphics, and FPS still require on-device testing.
+            Source and licenses:
+            - Skyline base: https://github.com/im030/skyline-emu/tree/35fb874a42cb548cbd3d66a00d65e4b2a4c1516b
+            - Video implementation: https://github.com/LukeValen/Strato-Mali-Public-Build/tree/9249ea351ad7bd7b0e7d4a319e1ad1c56dae865c
+            - Dimm integration and build scripts: https://github.com/dimmstz/Skyline_Edge_Dimm/tree/${{ github.sha }}
+            - GPL-3.0-or-later and MPL-2.0 notices are included in the source repository.
+
+            H.264/VP8/VP9 decode and VIC composition are regression-tested in CI. Resident Evil 4
+            prerecorded campaign videos and Galaxy M23 playback still require on-device testing.
           files: |
             release-assets/SkylineDimm-M23-ARM64.apk
             release-assets/APK-METADATA.txt
