@@ -378,7 +378,7 @@ jobs:
           APKSIGNER="$ANDROID_HOME/build-tools/34.0.0/apksigner"
           "$AAPT" dump badging "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.apk" > "$GITHUB_WORKSPACE/reference-dist/APK-METADATA.txt"
           grep -q "package: name='com.dimm.skyline'" "$GITHUB_WORKSPACE/reference-dist/APK-METADATA.txt"
-          grep -q "versionCode='72'" "$GITHUB_WORKSPACE/reference-dist/APK-METADATA.txt"
+          grep -q "versionCode='73'" "$GITHUB_WORKSPACE/reference-dist/APK-METADATA.txt"
           grep -q "versionName='0.1.59-advanced'" "$GITHUB_WORKSPACE/reference-dist/APK-METADATA.txt"
           "$APKSIGNER" verify --verbose "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.apk"
           unzip -l "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.apk" | grep -q 'lib/arm64-v8a/libskyline.so'
@@ -417,7 +417,7 @@ jobs:
           test -s release-assets/SHA256SUMS.txt
           test -s release-assets/BUILD-INFO.txt
           grep -q "package: name='com.dimm.skyline'" release-assets/APK-METADATA.txt
-          grep -q "versionCode='72'" release-assets/APK-METADATA.txt
+          grep -q "versionCode='73'" release-assets/APK-METADATA.txt
           grep -q "versionName='0.1.59-advanced'" release-assets/APK-METADATA.txt
           (cd release-assets && sha256sum --check SHA256SUMS.txt)
 
