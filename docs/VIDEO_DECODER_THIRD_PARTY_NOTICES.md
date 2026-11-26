@@ -3,7 +3,7 @@
 The Host1x NVDEC/VIC implementation in `third_party/strato-video/` is vendored from:
 
 - Repository: https://github.com/LukeValen/Strato-Mali-Public-Build
-- Pinned source commit: `9249ea351ad7bd7b0e7d4a319e1ad1c56dae865c`
+- Pinned source commit: `9249ea351ad7bd7b0e7d4a319e1ad1c56dae865c`\n- Skyline base used by CI: https://github.com/im030/skyline-emu at `35fb874a42cb548cbd3d66a00d65e4b2a4c1516b`
 - Original upstream ancestry: Strato / Skyline, with decoder and VIC implementation derived from Eden and yuzu.
 - License for the decoder/runtime implementation: GPL-3.0-or-later.
 - FFmpeg: version 6.1.2, built as a static Android arm64 library with H.264, VP8 and VP9 decoders/parsers enabled.
