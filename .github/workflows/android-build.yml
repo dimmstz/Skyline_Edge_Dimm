@@ -292,10 +292,13 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y libavcodec-dev libavutil-dev libvulkan-dev mesa-vulkan-drivers vulkan-validationlayers glslang-tools ninja-build
+          sudo apt-get install -y libavcodec-dev libavutil-dev libvulkan-dev mesa-vulkan-drivers vulkan-validationlayers glslang-tools ninja-build ccache
 
       - name: Apply Dimm graphics controls and VIC/frame-queue fixes
         run: python3 project/tools/apply_advanced_graphics.py reference/strato
+
+      - name: Verify Dimm settings reach native Vulkan and VIC code
+        run: python3 project/tests/test_dimm_advanced_graphics.py reference/strato
 
       - name: Test NVDEC and VIC video pipeline
         working-directory: reference/strato
