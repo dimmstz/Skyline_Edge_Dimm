@@ -35,7 +35,7 @@ namespace skyline::soc::host1x {
                 u32 syncpointId{incrQueue.front()};
                 incrQueue.pop();
 
-                LOGD("Increment syncpoint: {}", syncpointId);
+                Logger::Debug("Increment syncpoint: {}", syncpointId);
                 syncpoints.at(syncpointId).Increment();
             }
         }
@@ -56,20 +56,20 @@ namespace skyline::soc::host1x {
 
                     switch (incrSyncpoint.condition) {
                         case IncrementSyncpointMethod::Condition::Immediate:
-                            LOGD("Increment syncpoint: {}", incrSyncpoint.index);
+                            Logger::Debug("Increment syncpoint: {}", incrSyncpoint.index);
                             syncpoints.at(incrSyncpoint.index).Increment();
                             break;
                         case IncrementSyncpointMethod::Condition::RdDone:
                         case IncrementSyncpointMethod::Condition::RegWRSafe:
                         case IncrementSyncpointMethod::Condition::OpDone:
-                            LOGD("Queue syncpoint for OpDone: {}", incrSyncpoint.index);
+                            Logger::Debug("Queue syncpoint for OpDone: {}", incrSyncpoint.index);
                             AddIncr(incrSyncpoint.index);
                             // Device methods execute synchronously on this channel's worker.
                             // At this point every preceding decode/write has completed.
                             SubmitPendingIncrs();
                             break;
                         default:
-                            LOGW("Unimplemented syncpoint condition: {}", static_cast<u8>(incrSyncpoint.condition));
+                            Logger::Warn("Unimplemented syncpoint condition: {}", static_cast<u8>(incrSyncpoint.condition));
                             break;
                     }
                     break;
@@ -81,7 +81,7 @@ namespace skyline::soc::host1x {
                     deviceClass.CallMethod(storedMethod, argument);
                     break;
                 default:
-                    LOGE("Unknown THI method called: 0x{:X}, argument: 0x{:X}", method, argument);
+                    Logger::Error("Unknown THI method called: 0x{:X}, argument: 0x{:X}", method, argument);
                     break;
             }
         }
