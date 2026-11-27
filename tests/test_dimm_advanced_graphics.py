@@ -179,7 +179,7 @@ opacity_checks = {
     "Gameplay opacity binding": ("app/src/main/java/org/stratoemu/strato/EmulationActivity.kt",
                                  ["globalOpacityPercent = appSettings.onScreenControlOpacity"]),
     "Opacity preference UI": ("app/src/main/res/xml/input_preferences.xml",
-                              ["on_screen_control_opacity", "android:min=\\"0\\"", "android:max=\\"100\\""]),
+                              ["on_screen_control_opacity", "android:min=\"0\"", "android:max=\"100\""]),
     "Opacity localized labels": ("app/src/main/res/values/dimm_advanced_graphics.xml",
                                  ["Opacidade dos controles", "transparência global"]),
 }
