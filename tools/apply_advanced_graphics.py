@@ -178,7 +178,7 @@ edit("app/src/main/java/org/stratoemu/strato/settings/GlobalSettingsFragment.kt"
     ('        "respect_display_cutout", "enable_foldable_layout", "show_pause_button", "disable_shader_cache")\n',
      '        "respect_display_cutout", "enable_foldable_layout", "show_pause_button", "disable_shader_cache",\n'
      '        "force_triple_buffering", "disable_frame_throttling", "executor_slot_count_scale",\n'
-     '        "executor_flush_threshold", "use_direct_memory_import", "force_max_gpu_clocks", "free_guest_texture_memory")\n')
+     '        "executor_flush_threshold", "use_direct_memory_import", "force_max_gpu_clocks", "free_guest_texture_memory", "performance_profile")\n')
 ])
 
 edit("app/src/main/java/org/stratoemu/strato/settings/GlobalSettingsFragment.kt", [
@@ -282,11 +282,6 @@ edit("app/src/main/java/org/stratoemu/strato/settings/NativeSettings.kt", [
      "        pref.effectiveResolutionScale,\n"
      "        pref.effectiveMipmapLodBias,\n"
      "        pref.effectiveMaxAnisotropy\n")
-])
-
-edit("app/src/main/java/org/stratoemu/strato/settings/GlobalSettingsFragment.kt", [
-    ('"respect_display_cutout", "enable_foldable_layout", "show_pause_button", "disable_shader_cache")',
-     '"respect_display_cutout", "enable_foldable_layout", "show_pause_button", "disable_shader_cache", "performance_profile")')
 ])
 
 # Keep the per-frame overlay lightweight on Adreno 619: do not format locale-aware
