@@ -39,7 +39,7 @@ class MainActivity : Activity() {
         val page = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(20), dp(18), dp(20), dp(30))
-            setBackgroundColor(background)
+            setBackgroundColor(this@MainActivity.background)
         }
 
         page.addView(buildHeader())
@@ -65,7 +65,7 @@ class MainActivity : Activity() {
         val scroll = ScrollView(this).apply {
             isFillViewport = true
             clipToPadding = false
-            setBackgroundColor(background)
+            setBackgroundColor(this@MainActivity.background)
             isVerticalScrollBarEnabled = false
             addView(page)
         }
