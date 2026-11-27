@@ -501,16 +501,16 @@ edit("app/src/main/java/org/stratoemu/strato/settings/MaliPreferenceCards.kt", [
 # Global on-screen controller opacity. This is a view-level alpha multiplier:
 # touch hit-testing and per-button opacity/scale customization remain unchanged.
 edit("app/src/main/java/org/stratoemu/strato/settings/AppSettings.kt", [
-    ("    var onScreenControl by sharedPreferences(context, true)\\n",
-     "    var onScreenControl by sharedPreferences(context, true)\\n"
-     "    var onScreenControlOpacity by sharedPreferences(context, 100)\\n")
+    ("    var onScreenControl by sharedPreferences(context, true)\n",
+     "    var onScreenControl by sharedPreferences(context, true)\n"
+     "    var onScreenControlOpacity by sharedPreferences(context, 100)\n")
 ])
 
 edit("app/src/main/java/org/stratoemu/strato/input/onscreen/OnScreenControllerView.kt", [
-    ("    var controllerType : ControllerType? = null\\n",
-     "    var globalOpacityPercent : Int = 100\\n"
-     "        set(value) { field = value.coerceIn(0, 100); invalidate() }\\n"
-     "    var controllerType : ControllerType? = null\\n"),
+    ("    var controllerType : ControllerType? = null\n",
+     "    var globalOpacityPercent : Int = 100\n"
+     "        set(value) { field = value.coerceIn(0, 100); invalidate() }\n"
+     "    var controllerType : ControllerType? = null\n"),
     ("""        val allowedIds = controllerTypeMappings[controllerType]
         controls.allButtons.forEach { button ->
 """,
@@ -617,7 +617,7 @@ edit("app/src/main/cpp/skyline/common/android_settings.h", [
 ])
 
 edit("app/src/main/cpp/skyline/gpu.cpp", [
-    ("#include <dlfcn.h>\\n", "#include <algorithm>\\n#include <dlfcn.h>\\n"),
+    ("#include <dlfcn.h>\n", "#include <algorithm>\n#include <dlfcn.h>\n"),
     ("    int GPU::MipmapLodBias() const { return *state.settings->mipmapLodBias; }\n",
      "    int GPU::MipmapLodBias() const {\n"
      "        if (*state.settings->performanceProfile == 3 && (traits.vendorId == 0x5143U || traits.vendorId == 0x13B5U)) return 4;\n"
