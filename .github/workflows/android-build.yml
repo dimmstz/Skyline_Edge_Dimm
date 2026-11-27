@@ -387,7 +387,17 @@ jobs:
           unzip -l "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.apk" | grep -q 'lib/arm64-v8a/libskyline.so'
           unzip -l "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.aab" | grep -q 'base/lib/arm64-v8a/libskyline.so'
 
-      - name: Upload final Strato Mali APK and AAB
+      - name: Upload compiled Strato Mali APK and AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: SkylineDimm-StratoMali-Advanced-APK-AAB
+          path: |
+            reference-dist/SkylineDimm-M23-ARM64.apk
+            reference-dist/SkylineDimm-M23-ARM64.aab
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload final Strato Mali APK and AAB (persistent signing)
         if: ${{ steps.signing.outputs.persistent == 'true' }}
         uses: actions/upload-artifact@v4
         with:
