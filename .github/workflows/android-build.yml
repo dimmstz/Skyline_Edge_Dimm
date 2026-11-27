@@ -6,9 +6,12 @@ on:
       - main
       - fix/re4-video-decoder
       - feat/advanced-graphics-video-m23
+      - restore/strato-mali-advanced
     tags:
       - "v*"
   pull_request:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       apk_url:
@@ -33,7 +36,7 @@ concurrency:
 jobs:
   build:
     name: Build and verify Android packages
-    if: ${{ github.ref_type != 'tag' && github.event_name != 'pull_request' }}
+    if: ${{ github.ref_type != 'tag' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
 
@@ -159,7 +162,7 @@ jobs:
           test -d "$ANDROID_HOME/platforms/android-35"
           test -d "$ANDROID_HOME/build-tools/35.0.0"
 
-      - name: Run unit tests and build all variants
+      - name: Run project unit tests (no distributable APK)
         run: gradle --no-daemon --stacktrace clean testDebugUnitTest
 
 
@@ -170,7 +173,7 @@ jobs:
       version_code: ${{ steps.version.outputs.version_code }}
       release_tag: ${{ steps.version.outputs.release_tag }}
       persistent_signing: ${{ steps.signing.outputs.persistent }}
-    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.build_reference_core) || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/fix/re4-video-decoder' || github.ref == 'refs/heads/feat/advanced-graphics-video-m23')) }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.build_reference_core) || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/fix/re4-video-decoder' || github.ref == 'refs/heads/feat/advanced-graphics-video-m23' || github.ref == 'refs/heads/restore/strato-mali-advanced')) || (github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'restore/strato-mali-advanced') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 180
     steps:
@@ -407,7 +410,7 @@ jobs:
             - Version: ${{ needs.reference-core-build.outputs.version_name }} (versionCode ${{ needs.reference-core-build.outputs.version_code }})
             - ABI: arm64-v8a
             - GPU: automatic Vulkan capability detection for Adreno and Mali
-          - Internal Vulkan render resolution: 0.50x through 2.00x, native fallback for unsupported passes
+            - Internal Vulkan render resolution: 0.50x through 2.00x, native fallback for unsupported passes
             - Texture controls: configurable mipmap LOD bias and device-limited anisotropic filtering
             - Video: exact NVDEC frame-address matching, multiple VIC surfaces, alpha composition, field modes and flipped NV12 output
             - Video codecs enabled in this source: H.264, VP8 and VP9
