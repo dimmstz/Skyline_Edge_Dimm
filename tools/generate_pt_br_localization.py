@@ -308,7 +308,7 @@ res = ET.Element("resources")
 for key, value in advanced.items():
     ET.SubElement(res, "string", {"name":key}).text = value
 profile_entries = ET.SubElement(res, "string-array", {"name":"performance_profile_entries"})
-for value in ("Personalizado", "FPS equilibrado (0,75x)", "Desempenho (0,50x)"):
+for value in ("Personalizado", "FPS equilibrado (0,75x)", "Desempenho (0,50x)", "Automático GPU (Adreno/Mali)"):
     ET.SubElement(profile_entries, "item").text = value
 ET.indent(res, space="    ")
 ET.ElementTree(res).write(locale / "dimm_advanced_graphics.xml", encoding="utf-8", xml_declaration=True)
