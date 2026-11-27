@@ -293,6 +293,9 @@ if resources.exists():
     raise SystemExit("Refusing to overwrite app/src/main/res/values/dimm_advanced_graphics.xml")
 resources.write_text("""<?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="graphics_quality">Qualidade gráfica</string>
+    <string name="graphics_drivers">Drivers gráficos</string>
+    <string name="performance_stability">Desempenho e estabilidade</string>
     <string name="advanced_graphics_controls">GPU e desempenho avançado</string>
     <string name="mipmap_lod_bias">Mipmap LOD bias</string>
     <string name="mipmap_lod_bias_desc">Positive values select lower-resolution mip levels at distance and can reduce texture bandwidth. Negative values sharpen distant textures but may cause shimmering. Restart the game after changing.</string>
