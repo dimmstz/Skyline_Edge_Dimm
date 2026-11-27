@@ -533,3 +533,63 @@ edit("app/src/main/cpp/skyline/gpu/shader_manager.cpp", [
 ])
 
 print("Applied exact-offset NVDEC frame retrieval and expanded VIC multi-slot/alpha/field/flip handling.")
+
+# Detect the actual Vulkan GPU vendor and apply conservative vendor-aware defaults.
+# Vulkan vendorID is authoritative here; Android model strings are not used.
+edit("app/src/main/java/org/stratoemu/strato/settings/NativeSettings.kt", [
+    ("    var maxAnisotropy : Int = 0\n", "    var maxAnisotropy : Int = 0,\n    var performanceProfile : Int = 0\n"),
+    ("        pref.effectiveMaxAnisotropy\n", "        pref.effectiveMaxAnisotropy,\n        pref.performanceProfile\n")
+])
+
+edit("app/src/main/cpp/skyline/common/settings.h", [
+    ("        Setting<int> maxAnisotropy; //!< 0 keeps the game's sampler anisotropy\n",
+     "        Setting<int> maxAnisotropy; //!< 0 keeps the game's sampler anisotropy\n"
+     "        Setting<int> performanceProfile; //!< 0 custom, 1 balanced, 2 performance, 3 automatic GPU-aware\n")
+])
+
+edit("app/src/main/cpp/skyline/common/android_settings.h", [
+    ('            maxAnisotropy = ktSettings.GetInt<int>("maxAnisotropy");\n',
+     '            maxAnisotropy = ktSettings.GetInt<int>("maxAnisotropy");\n'
+     '            performanceProfile = ktSettings.GetInt<int>("performanceProfile");\n')
+])
+
+edit("app/src/main/cpp/skyline/gpu.cpp", [
+    ("    int GPU::MipmapLodBias() const { return *state.settings->mipmapLodBias; }\n",
+     "    int GPU::MipmapLodBias() const {\n"
+     "        if (*state.settings->performanceProfile == 3 && (traits.vendorId == 0x5143U || traits.vendorId == 0x13B5U)) return 4;\n"
+     "        return *state.settings->mipmapLodBias;\n"
+     "    }\n"),
+    ("    int GPU::MaxAnisotropy() const { return *state.settings->maxAnisotropy; }\n",
+     "    int GPU::MaxAnisotropy() const {\n"
+     "        if (*state.settings->performanceProfile == 3) {\n"
+     "            if (traits.vendorId == 0x5143U) return 2; // Qualcomm Adreno\n"
+     "            if (traits.vendorId == 0x13B5U) return 1; // ARM Mali: keep filtering lightweight\n"
+     "        }\n"
+     "        return *state.settings->maxAnisotropy;\n"
+     "    }\n"),
+    ("    GPU::GPU(const DeviceState &state)\n        : state(state),",
+     "    static int SelectResolutionScale(const DeviceState &state, const TraitManager &traits) {\n"
+     "        const int requested = *state.settings->resolutionScale;\n"
+     "        if (*state.settings->performanceProfile != 3) return requested;\n"
+     "        // 1 = 0.75x in Scale::FromSetting. Keep explicit lower user scales intact.\n"
+     "        if (traits.vendorId == 0x5143U || traits.vendorId == 0x13B5U) return std::min(requested, 1);\n"
+     "        return requested; // Unknown GPU: never guess or force a vendor profile.\n"
+     "    }\n\n"
+     "    GPU::GPU(const DeviceState &state)\n        : state(state),"),
+    ("          resolutionScale(resolution::Scale::FromSetting(*state.settings->resolutionScale)),",
+     "          resolutionScale(resolution::Scale::FromSetting(SelectResolutionScale(state, traits))),"),
+    ('LOGI("[VFX-OPT] GPU={} vendor=0x{:04X} device=0x{:04X} driverVersion={} VulkanApi={}.{}.{}",\n',
+     'LOGI("[VFX-OPT] GPU={} family={} vendor=0x{:04X} device=0x{:04X} driverVersion={} VulkanApi={}.{}.{}",\n'),
+    ("             deviceProperties.deviceName, traits.vendorId, traits.deviceId, traits.driverVersion,\n",
+     '             deviceProperties.deviceName, traits.vendorId == 0x5143U ? "Adreno" : traits.vendorId == 0x13B5U ? "Mali" : "Unknown",\n'
+     "             traits.vendorId, traits.deviceId, traits.driverVersion,\n")
+])
+
+edit("app/src/main/res/values/dimm_advanced_graphics.xml", [
+    ("<item>Custom</item><item>Balanced FPS (0.75x)</item><item>Performance (0.50x)</item>",
+     "<item>Custom</item><item>Balanced FPS (0.75x)</item><item>Performance (0.50x)</item><item>Auto GPU (Adreno/Mali)</item>"),
+    ("<item>0</item><item>1</item><item>2</item>\n    </integer-array>",
+     "<item>0</item><item>1</item><item>2</item><item>3</item>\n    </integer-array>")
+])
+
+print("Applied Vulkan vendor detection: Qualcomm Adreno (0x5143), ARM Mali (0x13B5), conservative automatic resolution/LOD/anisotropy profile, and unknown-vendor fallback.");
