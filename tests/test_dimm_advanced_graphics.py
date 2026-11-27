@@ -169,4 +169,24 @@ for required in ("shadowScale", "vfxScale", "forceFp16", "skipVolumetrics",
             continue
         raise SystemExit(f"VFX/FPS audit is missing: {required}")
 
+
+# On-screen controller opacity must persist, reach the gameplay view and only affect rendering.
+opacity_checks = {
+    "Global opacity preference": ("app/src/main/java/org/stratoemu/strato/settings/AppSettings.kt",
+                                  ["onScreenControlOpacity", "sharedPreferences(context, 100)"]),
+    "Controller view alpha layer": ("app/src/main/java/org/stratoemu/strato/input/onscreen/OnScreenControllerView.kt",
+                                    ["globalOpacityPercent", "canvas.saveLayerAlpha", "canvas.restoreToCount(layer)"]),
+    "Gameplay opacity binding": ("app/src/main/java/org/stratoemu/strato/EmulationActivity.kt",
+                                 ["globalOpacityPercent = appSettings.onScreenControlOpacity"]),
+    "Opacity preference UI": ("app/src/main/res/xml/input_preferences.xml",
+                              ["on_screen_control_opacity", "android:min=\\"0\\"", "android:max=\\"100\\""]),
+    "Opacity localized labels": ("app/src/main/res/values/dimm_advanced_graphics.xml",
+                                 ["Opacidade dos controles", "transparência global"]),
+}
+for label, (path, needles) in opacity_checks.items():
+    source = read(path)
+    missing = [needle for needle in needles if needle not in source]
+    if missing:
+        raise SystemExit(f"{label}: missing implementation: {missing}")
+
 print(f"PASS: {len(checks)} end-to-end graphics/video integration checks.")
