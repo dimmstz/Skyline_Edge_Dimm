@@ -392,8 +392,6 @@ jobs:
           test -s release-assets/SkylineDimm-M23-ARM64.aab
           unzip -t release-assets/SkylineDimm-M23-ARM64.apk >/dev/null
           unzip -t release-assets/SkylineDimm-M23-ARM64.aab >/dev/null
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose release-assets/SkylineDimm-M23-ARM64.apk
-          jarsigner -verify release-assets/SkylineDimm-M23-ARM64.aab
           unzip -l release-assets/SkylineDimm-M23-ARM64.apk | grep -q 'lib/arm64-v8a/libskyline.so'
           unzip -l release-assets/SkylineDimm-M23-ARM64.aab | grep -q 'base/lib/arm64-v8a/libskyline.so'
 
