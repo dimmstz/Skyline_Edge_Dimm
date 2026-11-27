@@ -541,7 +541,7 @@ edit("app/src/main/java/org/stratoemu/strato/EmulationActivity.kt", [
 ])
 
 edit("app/src/main/res/xml/input_preferences.xml", [
-    ("</PreferenceScreen>",
+    ("</androidx.preference.PreferenceScreen>",
      """    <PreferenceCategory
         android:key="category_onscreen_controls"
         android:title="@string/onscreen_controls">
