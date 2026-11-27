@@ -168,50 +168,8 @@ jobs:
           test -d "$ANDROID_HOME/platforms/android-35"
           test -d "$ANDROID_HOME/build-tools/35.0.0"
 
-      - name: Run unit tests and build all variants
-        run: gradle --no-daemon --stacktrace clean testDebugUnitTest assembleDebug assembleRelease bundleRelease
-
-      - name: Verify APK and AAB outputs
-        shell: bash
-        run: |
-          set -euo pipefail
-          DEBUG_APK="app/build/outputs/apk/debug/app-debug.apk"
-          RELEASE_APK="$(find app/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' -print -quit)"
-          RELEASE_AAB="app/build/outputs/bundle/release/app-release.aab"
-
-          test -s "$DEBUG_APK"
-          test -n "$RELEASE_APK"
-          test -s "$RELEASE_APK"
-          test -s "$RELEASE_AAB"
-
-          mkdir -p dist
-          cp "$DEBUG_APK" dist/SkylineDimm-debug.apk
-          cp "$RELEASE_APK" dist/SkylineDimm-release.apk
-          cp "$RELEASE_AAB" dist/SkylineDimm-release.aab
-
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$DEBUG_APK" >/dev/null
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$RELEASE_APK" >/dev/null
-          unzip -t "$RELEASE_AAB" >/dev/null
-
-          if [ -n "${ANDROID_KEYSTORE_PATH:-}" ]; then
-            "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose dist/SkylineDimm-release.apk
-            printf '%s\\n' "Release APK/AAB signed with configured repository secrets." > dist/SIGNING_STATUS.txt
-          else
-            printf '%s\\n' "Release APK/AAB are unsigned. Install the signed debug APK for local testing, or configure the four signing secrets." > dist/SIGNING_STATUS.txt
-          fi
-
-          (
-            cd dist
-            sha256sum SkylineDimm-debug.apk SkylineDimm-release.apk SkylineDimm-release.aab SIGNING_STATUS.txt > SHA256SUMS.txt
-          )
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: SkylineDimm-Android-${{ github.run_number }}
-          path: dist/
-          if-no-files-found: error
-          retention-days: 30
+      - name: Compile diagnostic UI and run unit tests (no distributable package)
+        run: gradle --no-daemon --stacktrace clean testDebugUnitTest assembleRelease
 
       - name: Resolve release tag
         id: release_meta
@@ -402,32 +360,38 @@ jobs:
           chmod +x ./gradlew
           # Release compiles the native core with CMAKE_BUILD_TYPE=RELEASE and
           # excludes the large Vulkan validation-layer libraries used by Debug.
-          ./gradlew --no-daemon --stacktrace --max-workers=2 :app:assembleFullRelease
+          ./gradlew --no-daemon --stacktrace --max-workers=2 :app:assembleFullRelease :app:bundleFullRelease
           APK="$(find app/build/outputs/apk/full/release -maxdepth 1 -type f -name '*.apk' -print -quit)"
+          AAB="$(find app/build/outputs/bundle/fullRelease -maxdepth 1 -type f -name '*.aab' -print -quit)"
           test -n "$APK"
           test -s "$APK"
+          test -n "$AAB"
+          test -s "$AAB"
           mkdir -p "$GITHUB_WORKSPACE/reference-dist"
           cp "$APK" "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.apk"
+          cp "$AAB" "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.aab"
 
           AAPT="$ANDROID_HOME/build-tools/33.0.2/aapt"
           APKSIGNER="$ANDROID_HOME/build-tools/33.0.2/apksigner"
-          "$AAPT" dump badging "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.apk" > "$GITHUB_WORKSPACE/reference-dist/APK-METADATA.txt"
+          "$AAPT" dump badging "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.apk" > "$RUNNER_TEMP/native-apk-metadata.txt"
           "$APKSIGNER" verify --verbose "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.apk"
+          jarsigner -verify "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.aab"
           unzip -l "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.apk" | grep -q 'lib/arm64-v8a/libskyline.so'
+          unzip -l "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.aab" | grep -q 'base/lib/arm64-v8a/libskyline.so'
           if unzip -l "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.apk" | grep -q 'libVkLayer_khronos_validation.so'; then
             echo "Unexpected Vulkan validation layer in optimized release APK."
             exit 1
           fi
-          (
-            cd "$GITHUB_WORKSPACE/reference-dist"
-            sha256sum SkylineDimm-M23-ARM64.apk > SHA256SUMS.txt
-          )
+          grep -q "package: name='com.dimm.skyline'" "$RUNNER_TEMP/native-apk-metadata.txt"
+          grep -q "versionName='0.1.57-video'" "$RUNNER_TEMP/native-apk-metadata.txt"
 
-      - name: Upload optimized reference emulator APK
+      - name: Upload final native APK and AAB
         uses: actions/upload-artifact@v4
         with:
-          name: Skyline-Reference-Core-Release-APK
-          path: reference-dist/
+          name: SkylineDimm-M23-Final-\${{ github.run_number }}
+          path: |
+            reference-dist/SkylineDimm-M23-ARM64.apk
+            reference-dist/SkylineDimm-M23-ARM64.aab
           if-no-files-found: error
           retention-days: 30
 
@@ -448,11 +412,12 @@ jobs:
         run: |
           set -euo pipefail
           test -s release-assets/SkylineDimm-M23-ARM64.apk
-          test -s release-assets/APK-METADATA.txt
-          test -s release-assets/SHA256SUMS.txt
-          grep -q "package: name='com.dimm.skyline'" release-assets/APK-METADATA.txt
-          grep -q "versionName='0.1.57-video'" release-assets/APK-METADATA.txt
-          (cd release-assets && sha256sum --check SHA256SUMS.txt)
+          test -s release-assets/SkylineDimm-M23-ARM64.aab
+          "$ANDROID_HOME/build-tools/33.0.2/aapt" dump badging release-assets/SkylineDimm-M23-ARM64.apk | grep -q "package: name='com.dimm.skyline'"
+          "$ANDROID_HOME/build-tools/33.0.2/apksigner" verify release-assets/SkylineDimm-M23-ARM64.apk
+          jarsigner -verify release-assets/SkylineDimm-M23-ARM64.aab
+          unzip -l release-assets/SkylineDimm-M23-ARM64.apk | grep -q 'lib/arm64-v8a/libskyline.so'
+          unzip -l release-assets/SkylineDimm-M23-ARM64.aab | grep -q 'base/lib/arm64-v8a/libskyline.so'
 
       - name: Publish native emulator release
         uses: softprops/action-gh-release@v2
@@ -480,8 +445,7 @@ jobs:
             prerecorded campaign videos and Galaxy M23 playback still require on-device testing.
           files: |
             release-assets/SkylineDimm-M23-ARM64.apk
-            release-assets/APK-METADATA.txt
-            release-assets/SHA256SUMS.txt
+            release-assets/SkylineDimm-M23-ARM64.aab
           fail_on_unmatched_files: true
           generate_release_notes: true
           make_latest: true
