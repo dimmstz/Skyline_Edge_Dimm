@@ -388,7 +388,7 @@ jobs:
       - name: Upload final native APK and AAB
         uses: actions/upload-artifact@v4
         with:
-          name: SkylineDimm-M23-Final-\${{ github.run_number }}
+          name: SkylineDimm-M23-Final-${{ github.run_number }}
           path: |
             reference-dist/SkylineDimm-M23-ARM64.apk
             reference-dist/SkylineDimm-M23-ARM64.aab
@@ -404,7 +404,7 @@ jobs:
       - name: Download verified native APK
         uses: actions/download-artifact@v4
         with:
-          name: Skyline-Reference-Core-Release-APK
+          name: SkylineDimm-M23-Final-${{ github.run_number }}
           path: release-assets
 
       - name: Verify release files
