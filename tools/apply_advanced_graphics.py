@@ -175,6 +175,13 @@ edit("app/src/main/cpp/skyline/gpu/interconnect/common/samplers.cpp", [
 ])
 
 edit("app/src/main/java/org/stratoemu/strato/settings/GlobalSettingsFragment.kt", [
+    ('        "respect_display_cutout", "enable_foldable_layout", "show_pause_button", "disable_shader_cache")\n',
+     '        "respect_display_cutout", "enable_foldable_layout", "show_pause_button", "disable_shader_cache",\n'
+     '        "force_triple_buffering", "disable_frame_throttling", "executor_slot_count_scale",\n'
+     '        "executor_flush_threshold", "use_direct_memory_import", "force_max_gpu_clocks", "free_guest_texture_memory")\n')
+])
+
+edit("app/src/main/java/org/stratoemu/strato/settings/GlobalSettingsFragment.kt", [
     ('        "executor_flush_threshold", "use_direct_memory_import", "force_max_gpu_clocks", "free_guest_texture_memory",\n',
      '        "executor_flush_threshold", "use_direct_memory_import", "force_max_gpu_clocks", "free_guest_texture_memory",\n'
      '        "mipmap_lod_bias", "max_anisotropy",\n')
@@ -492,7 +499,7 @@ edit("app/src/main/java/org/stratoemu/strato/settings/MaliPreferenceCards.kt", [
      "        color = MaterialColors.getColor(context, com.google.android.material.R.attr.colorOutline, android.graphics.Color.rgb(39, 101, 170))\n")
 ])
 
-print("Applied Dimm advanced graphics settings: Vulkan resolution scale, mipmap LOD bias and anisotropy.")
+print("Applied Dimm advanced graphics settings: Vulkan resolution scale, mipmap LOD bias, anisotropy, GPU scheduling, clocks, memory and frame pacing controls.")
 
 # VFX/FPS backend audit instrumentation. Record real Vulkan capabilities only;
 # do not pretend guest effects can be classified safely.
