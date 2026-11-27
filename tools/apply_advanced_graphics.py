@@ -229,6 +229,65 @@ edit("app/src/main/res/xml/emulation_preferences.xml", [
             app:useSimpleSummaryProvider="true" />''')
 ])
 
+# Reorganize the emulation settings into focused, top-level sections.
+# Keep the existing preference objects and keys intact so stored values and listeners survive.
+import xml.etree.ElementTree as ET
+
+ET.register_namespace("android", "http://schemas.android.com/apk/res/android")
+ET.register_namespace("app", "http://schemas.android.com/apk/res-auto")
+preferences_path = root / "app/src/main/res/xml/emulation_preferences.xml"
+tree = ET.parse(preferences_path)
+preference_root = tree.getroot()
+ANDROID_NS = "{http://schemas.android.com/apk/res/android}"
+APP_NS = "{http://schemas.android.com/apk/res-auto}"
+
+def pref_key(element):
+    return element.get(APP_NS + "key") or element.get(ANDROID_NS + "key")
+
+def make_category(key, title):
+    return ET.Element("PreferenceCategory", {
+        ANDROID_NS + "key": key,
+        ANDROID_NS + "title": title,
+    })
+
+presentation = next((e for e in preference_root if e.tag == "PreferenceCategory" and e.get(ANDROID_NS + "key") == "category_presentation"), None)
+gpu = next((e for e in preference_root if e.tag == "PreferenceCategory" and e.get(ANDROID_NS + "key") == "category_gpu"), None)
+if presentation is None or gpu is None:
+    raise SystemExit("Cannot organize settings: presentation/GPU categories are missing")
+
+graphics = make_category("category_graphics_quality", "@string/graphics_quality")
+driver = make_category("category_gpu_driver", "@string/graphics_drivers")
+performance = make_category("category_performance", "@string/performance_stability")
+
+# Resolution scaling currently lives in Display; move it with texture quality controls.
+for element in list(presentation):
+    if pref_key(element) == "resolution_scale":
+        presentation.remove(element)
+        graphics.append(element)
+
+for element in list(gpu):
+    key = pref_key(element)
+    if key == "gpu_driver":
+        gpu.remove(element)
+        driver.append(element)
+    elif key in {"mipmap_lod_bias", "max_anisotropy", "performance_profile"}:
+        gpu.remove(element)
+        graphics.append(element)
+    else:
+        gpu.remove(element)
+        performance.append(element)
+
+# Keep the settings screen ordered by user task: display, visual quality, drivers,
+# performance/latency, then audio and compatibility/debug sections.
+children = list(preference_root)
+insert_at = children.index(presentation) + 1
+for category in (graphics, driver, performance):
+    preference_root.insert(insert_at, category)
+    insert_at += 1
+preference_root.remove(gpu)
+ET.indent(tree, space="    ")
+tree.write(preferences_path, encoding="utf-8", xml_declaration=True)
+
 resources = root / "app/src/main/res/values/dimm_advanced_graphics.xml"
 if resources.exists():
     raise SystemExit("Refusing to overwrite app/src/main/res/values/dimm_advanced_graphics.xml")
