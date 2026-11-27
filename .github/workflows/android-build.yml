@@ -6,7 +6,6 @@ on:
       - main
       - fix/re4-video-decoder
       - feat/advanced-graphics-video-m23
-      - restore/strato-mali-advanced
     tags:
       - "v*"
   pull_request:
@@ -30,7 +29,7 @@ permissions:
 
 concurrency:
   # Serialize per branch/PR and cancel stale commits so one branch does not compile duplicate native APKs.
-  group: skyline-android-${{ github.event_name }}-${{ github.event.pull_request.head.repo.full_name || github.repository }}-${{ github.event.pull_request.head.ref || github.ref_name }}
+  group: skyline-android-${{ github.event.pull_request.head.repo.full_name || github.repository }}-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
@@ -173,7 +172,7 @@ jobs:
       version_code: ${{ steps.version.outputs.version_code }}
       release_tag: ${{ steps.version.outputs.release_tag }}
       persistent_signing: ${{ steps.signing.outputs.persistent }}
-    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.build_reference_core) || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/fix/re4-video-decoder' || github.ref == 'refs/heads/feat/advanced-graphics-video-m23' || github.ref == 'refs/heads/restore/strato-mali-advanced')) || (github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'restore/strato-mali-advanced') }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.build_reference_core) || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/fix/re4-video-decoder' || github.ref == 'refs/heads/feat/advanced-graphics-video-m23')) || (github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'restore/strato-mali-advanced') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 180
     steps:
