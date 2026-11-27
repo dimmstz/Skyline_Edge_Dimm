@@ -124,10 +124,10 @@ for translated in ("Grade compacta", "Português do Brasil", "A–Z"):
         raise SystemExit(f"Missing Brazilian Portuguese preference option: {translated}")
 
 resources = read("app/src/main/res/values/dimm_advanced_graphics.xml")
-if resources.count("<item>") < 26:
-    raise SystemExit("Advanced graphics resource arrays are incomplete")
-if not all(f"<item>{v}</item>" in resources for v in (-4,-3,-2,-1,0,1,2,3,4,5,6,7,8)):
-    raise SystemExit("Mipmap LOD quarter-step values are incomplete")
+if not all(label in resources for label in ("Padrão (0.0)", "Leve (+1.0)", "Agressivo (+2.0)")):
+    raise SystemExit("Mipmap LOD bias presets are incomplete")
+if not all(f"<item>{v}</item>" in resources for v in (0,4,8)):
+    raise SystemExit("Mipmap LOD bias preset values are incomplete")
 
 vic = read("app/src/main/cpp/skyline/soc/host1x/video/video_core/host1x/vic_processor.cpp")
 for obsolete in (
