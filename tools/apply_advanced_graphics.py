@@ -554,6 +554,7 @@ edit("app/src/main/cpp/skyline/common/android_settings.h", [
 ])
 
 edit("app/src/main/cpp/skyline/gpu.cpp", [
+    ("#include <dlfcn.h>\\n", "#include <algorithm>\\n#include <dlfcn.h>\\n"),
     ("    int GPU::MipmapLodBias() const { return *state.settings->mipmapLodBias; }\n",
      "    int GPU::MipmapLodBias() const {\n"
      "        if (*state.settings->performanceProfile == 3 && (traits.vendorId == 0x5143U || traits.vendorId == 0x13B5U)) return 4;\n"
