@@ -228,24 +228,12 @@ resources.write_text("""<?xml version="1.0" encoding="utf-8"?>
     <string name="mipmap_lod_bias">Mipmap LOD bias</string>
     <string name="mipmap_lod_bias_desc">Positive values select lower-resolution mip levels at distance and can reduce texture bandwidth. Negative values sharpen distant textures but may cause shimmering. Restart the game after changing.</string>
     <string-array name="mipmap_lod_bias_entries" translatable="false">
-        <item>-1.00 (sharper)</item>
-        <item>-0.75</item>
-        <item>-0.50</item>
-        <item>-0.25</item>
-        <item>0 (game default)</item>
-        <item>+0.25</item>
-        <item>+0.50</item>
-        <item>+0.75</item>
-        <item>+1.00</item>
-        <item>+1.25</item>
-        <item>+1.50</item>
-        <item>+1.75</item>
-        <item>+2.00 (more blur)</item>
+        <item>Padrão (0.0)</item>
+        <item>Leve (+1.0)</item>
+        <item>Agressivo (+2.0)</item>
     </string-array>
     <integer-array name="mipmap_lod_bias_values">
-        <item>-4</item><item>-3</item><item>-2</item><item>-1</item><item>0</item>
-        <item>1</item><item>2</item><item>3</item><item>4</item><item>5</item>
-        <item>6</item><item>7</item><item>8</item>
+        <item>0</item><item>4</item><item>8</item>
     </integer-array>
     <string name="max_anisotropy">Anisotropic filtering override</string>
     <string name="max_anisotropy_desc">Overrides game-provided texture anisotropy when supported by the GPU. Higher values can improve angled surfaces but may cost performance. Restart the game after changing.</string>
