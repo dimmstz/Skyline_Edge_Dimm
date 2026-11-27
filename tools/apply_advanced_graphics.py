@@ -502,6 +502,74 @@ edit("app/src/main/java/org/stratoemu/strato/settings/MaliPreferenceCards.kt", [
      "        color = MaterialColors.getColor(context, com.google.android.material.R.attr.colorOutline, android.graphics.Color.rgb(39, 101, 170))\n")
 ])
 
+
+# Global on-screen controller opacity. This is a view-level alpha multiplier:
+# touch hit-testing and per-button opacity/scale customization remain unchanged.
+edit("app/src/main/java/org/stratoemu/strato/settings/AppSettings.kt", [
+    ("    var onScreenControl by sharedPreferences(context, true)\\n",
+     "    var onScreenControl by sharedPreferences(context, true)\\n"
+     "    var onScreenControlOpacity by sharedPreferences(context, 100)\\n")
+])
+
+edit("app/src/main/java/org/stratoemu/strato/input/onscreen/OnScreenControllerView.kt", [
+    ("    var controllerType : ControllerType? = null\\n",
+     "    var globalOpacityPercent : Int = 100\\n"
+     "        set(value) { field = value.coerceIn(0, 100); invalidate() }\\n"
+     "    var controllerType : ControllerType? = null\\n"),
+    ("""        val allowedIds = controllerTypeMappings[controllerType]
+        controls.allButtons.forEach { button ->
+""",
+     """        val layer = canvas.saveLayerAlpha(0f, 0f, width.toFloat(), height.toFloat(),
+            (globalOpacityPercent * 255 / 100).coerceIn(0, 255))
+        val allowedIds = controllerTypeMappings[controllerType]
+        controls.allButtons.forEach { button ->
+"""),
+    ("""        // Draw the selection box around the edit button
+        if (editInfo.isEditing && editInfo.editButton is OnScreenButton)
+            canvas.drawRect((editInfo.editButton as OnScreenButton).currentBounds, selectionPaint)
+""",
+     """        // Draw the selection box around the edit button
+        if (editInfo.isEditing && editInfo.editButton is OnScreenButton)
+            canvas.drawRect((editInfo.editButton as OnScreenButton).currentBounds, selectionPaint)
+        canvas.restoreToCount(layer)
+""")
+])
+
+edit("app/src/main/java/org/stratoemu/strato/EmulationActivity.kt", [
+    ("""        binding.onScreenControllerView.apply {
+            vibrator = builtinVibrator
+""",
+     """        binding.onScreenControllerView.apply {
+            globalOpacityPercent = appSettings.onScreenControlOpacity
+            vibrator = builtinVibrator
+""")
+])
+
+edit("app/src/main/res/xml/input_preferences.xml", [
+    ("</PreferenceScreen>",
+     """    <PreferenceCategory
+        android:key="category_onscreen_controls"
+        android:title="@string/onscreen_controls">
+        <SeekBarPreference
+            android:defaultValue="100"
+            android:max="100"
+            android:min="0"
+            android:summary="@string/onscreen_control_opacity_desc"
+            app:key="on_screen_control_opacity"
+            app:showSeekBarValue="true"
+            app:title="@string/onscreen_control_opacity" />
+    </PreferenceCategory>
+</PreferenceScreen>""")
+])
+
+edit("app/src/main/res/values/dimm_advanced_graphics.xml", [
+    ("</resources>",
+     """    <string name="onscreen_controls">Controles na tela</string>
+    <string name="onscreen_control_opacity">Opacidade dos controles</string>
+    <string name="onscreen_control_opacity_desc">Ajusta a transparência global dos botões e analógicos na tela durante o jogo. Não altera a área de toque nem a opacidade individual configurada no editor.</string>
+</resources>""")
+])
+
 print("Applied Dimm advanced graphics settings: Vulkan resolution scale, mipmap LOD bias, anisotropy, GPU scheduling, clocks, memory and frame pacing controls.")
 
 # VFX/FPS backend audit instrumentation. Record real Vulkan capabilities only;
