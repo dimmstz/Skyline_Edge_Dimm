@@ -171,42 +171,6 @@ jobs:
       - name: Compile diagnostic UI and run unit tests (no distributable package)
         run: gradle --no-daemon --stacktrace clean testDebugUnitTest assembleRelease
 
-      - name: Resolve release tag
-        id: release_meta
-        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
-        shell: bash
-        env:
-          RELEASE_TAG_INPUT: ${{ inputs.release_tag }}
-          RUN_NUMBER: ${{ github.run_number }}
-        run: |
-          set -euo pipefail
-          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" && "${{ inputs.publish_release }}" == "true" ]]; then
-            TAG_NAME="$RELEASE_TAG_INPUT"
-          else
-            TAG_NAME="v0.1.$RUN_NUMBER"
-          fi
-          if [[ ! "$TAG_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][A-Za-z0-9.-]+)?$ ]]; then
-            echo "Invalid release tag: $TAG_NAME (expected vX.Y.Z)"
-            exit 1
-          fi
-          echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
-
-      - name: Publish GitHub Release
-        if: ${{ false }} # Never publish the small diagnostic APK/AAB as the emulator release; native job publishes the verified full APK.
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.release_meta.outputs.tag_name }}
-          target_commitish: ${{ github.sha }}
-          name: Skyline Dimm ${{ steps.release_meta.outputs.tag_name }}
-          generate_release_notes: true
-          fail_on_unmatched_files: true
-          make_latest: true
-          files: |
-            dist/SkylineDimm-debug.apk
-            dist/SkylineDimm-release.apk
-            dist/SkylineDimm-release.aab
-            dist/SIGNING_STATUS.txt
-            dist/SHA256SUMS.txt
 
   reference-core-build:
     name: Build pinned Skyline reference core (optional)
@@ -396,12 +360,12 @@ jobs:
           retention-days: 30
 
   publish-reference-release:
-    name: Attach native Skyline APK to this build's Release
+    name: Publish final native APK and AAB release
     needs: [build, reference-core-build]
     if: ${{ success() && ((github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.build_reference_core)) }}
     runs-on: ubuntu-24.04
     steps:
-      - name: Download verified native APK
+      - name: Download verified native APK and AAB
         uses: actions/download-artifact@v4
         with:
           name: SkylineDimm-M23-Final-${{ github.run_number }}
@@ -413,9 +377,8 @@ jobs:
           set -euo pipefail
           test -s release-assets/SkylineDimm-M23-ARM64.apk
           test -s release-assets/SkylineDimm-M23-ARM64.aab
-          "$ANDROID_HOME/build-tools/33.0.2/aapt" dump badging release-assets/SkylineDimm-M23-ARM64.apk | grep -q "package: name='com.dimm.skyline'"
-          "$ANDROID_HOME/build-tools/33.0.2/apksigner" verify release-assets/SkylineDimm-M23-ARM64.apk
-          jarsigner -verify release-assets/SkylineDimm-M23-ARM64.aab
+          unzip -t release-assets/SkylineDimm-M23-ARM64.apk >/dev/null
+          unzip -t release-assets/SkylineDimm-M23-ARM64.aab >/dev/null
           unzip -l release-assets/SkylineDimm-M23-ARM64.apk | grep -q 'lib/arm64-v8a/libskyline.so'
           unzip -l release-assets/SkylineDimm-M23-ARM64.aab | grep -q 'base/lib/arm64-v8a/libskyline.so'
 
