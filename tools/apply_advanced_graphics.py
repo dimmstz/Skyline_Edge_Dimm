@@ -291,11 +291,12 @@ edit("app/src/main/java/org/stratoemu/strato/settings/GlobalSettingsFragment.kt"
      '"respect_display_cutout", "enable_foldable_layout", "show_pause_button", "disable_shader_cache", "performance_profile")')
 ])
 
+# Keep the per-frame overlay lightweight on Adreno 619: do not format locale-aware
+# floating-point strings on every Compose update. FPS/RAM remain available; detailed
+# frametime/jitter stay in diagnostics/logging rather than the hot UI path.
 edit("app/src/main/java/org/stratoemu/strato/EmulationActivity.kt", [
     ('                        text = "$fps FPS • $ramUsage MB"\n',
-     '                        val frameTime = String.format(java.util.Locale.US, "%.1f", averageFrametime)\n'
-     '                        val frameJitter = String.format(java.util.Locale.US, "%.1f", averageFrametimeDeviation)\n'
-     '                        text = "$fps FPS • $frameTime ms ±$frameJitter • $ramUsage MB"\n')
+     '                        text = "$fps FPS • $ramUsage MB"\n')
 ])
 
 # Resolve the decoded frame by its exact guest surface address. The previous FIFO-only
