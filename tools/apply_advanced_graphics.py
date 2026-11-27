@@ -554,7 +554,7 @@ edit("app/src/main/res/xml/input_preferences.xml", [
             app:showSeekBarValue="true"
             app:title="@string/onscreen_control_opacity" />
     </PreferenceCategory>
-</PreferenceScreen>""")
+</androidx.preference.PreferenceScreen>""")
 ])
 
 edit("app/src/main/res/values/dimm_advanced_graphics.xml", [
