@@ -472,3 +472,5 @@ jobs:
 # - Bump all three values together for each intended native release.
 # - A successful main build publishes the native APK under RELEASE_TAG; run numbers never become app versions.
 # - Tag-triggered runs are skipped to prevent recursive duplicate builds/releases.
+
+# CI trigger: compile the advanced graphics/video branch on demand via a branch push.
