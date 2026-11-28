@@ -270,6 +270,9 @@ jobs:
       - name: Apply Dimm graphics controls and VIC/frame-queue fixes
         run: python3 project/tools/apply_advanced_graphics.py reference/strato
 
+      - name: Apply Skyline Dimm Pix branding and QR support
+        run: python3 project/tools/apply_dimm_pix_branding.py reference/strato
+
       - name: Generate Brazilian Portuguese app localization
         run: python3 project/tools/generate_pt_br_localization.py reference/strato
 
