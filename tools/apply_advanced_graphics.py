@@ -743,7 +743,7 @@ edit("app/src/main/cpp/skyline/gpu.cpp", [
 edit("app/src/main/res/values/dimm_advanced_graphics.xml", [
     ("<item>Custom</item><item>Balanced FPS (0.75x)</item><item>Performance (0.50x)</item><item>Low memory (may reload textures)</item>",
      "<item>Custom</item><item>Balanced FPS (0.75x)</item><item>Performance (0.50x)</item><item>Auto GPU (Adreno/Mali)</item><item>Low memory (may reload textures)</item>"),
-    ("<item>0</item><item>1</item><item>2</item><item>4</item>\\n    </integer-array>",
+    ("<item>0</item><item>1</item><item>2</item><item>4</item>\n    </integer-array>",
      "<item>0</item><item>1</item><item>2</item><item>3</item><item>4</item>\n    </integer-array>")
 ])
 
