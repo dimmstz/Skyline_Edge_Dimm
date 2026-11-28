@@ -131,7 +131,7 @@ layout.write_text('''<?xml version="1.0" encoding="utf-8"?>
             android:layout_width="match_parent"
             android:layout_height="48dp"
             android:layout_marginTop="7dp"
-            android:text="@string/mali_kofi_not_now"
+            android:text="@string/dimm_pix_close"
             android:textAllCaps="false"
             android:textColor="#FFFFFFFF"
             android:textSize="14sp"
@@ -151,6 +151,32 @@ drawable.write_text('''<?xml version="1.0" encoding="utf-8"?>
     <stroke android:width="1dp" android:color="#649FEFFF" />
 </shape>
 ''', encoding="utf-8")
+
+# Replace the old Ko-fi resource names entirely and define the Pix strings in
+# the default resource set so Android and the pt-BR overlay resolve them.
+strings_file = root / "app/src/main/res/values/strings_mali_library.xml"
+tree = ET.parse(strings_file)
+resources = tree.getroot()
+obsolete = {"mali_kofi_title", "mali_kofi_message", "mali_kofi_button",
+            "mali_kofi_not_now", "mali_kofi_open_failed"}
+for node in list(resources):
+    if node.tag == "string" and node.attrib.get("name") in obsolete:
+        resources.remove(node)
+pix_strings = {
+    "dimm_pix_title": "Support Skyline Dimm",
+    "dimm_pix_message": "Support Skyline Dimm development with Pix. Scan the QR Code or copy the Pix code.",
+    "dimm_pix_copy": "Copy Pix code",
+    "dimm_pix_copied": "Pix code copied",
+    "dimm_pix_qr_description": "Pix QR Code to support Skyline Dimm",
+    "dimm_pix_close": "Close",
+}
+for key, value in pix_strings.items():
+    node = resources.find(f"string[@name='{key}']")
+    if node is None:
+        node = ET.SubElement(resources, "string", {"name": key})
+    node.text = value
+ET.indent(tree, space="    ")
+tree.write(strings_file, encoding="utf-8", xml_declaration=True)
 
 gradle = root / "app/build.gradle"
 replace_once(gradle, "    /* Other Java */\n", "    /* Other Java */\n    implementation 'com.google.zxing:core:3.5.3'\n")
