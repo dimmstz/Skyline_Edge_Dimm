@@ -350,14 +350,14 @@ edit("app/src/main/java/org/stratoemu/strato/settings/NativeSettings.kt", [
 ])
 
 edit("app/src/main/java/org/stratoemu/strato/settings/EmulationSettings.kt", [
-    ("    var executorSlotCountScale by sharedPreferences(context, 6, prefName = prefName)\\n",
-     "    var executorSlotCountScale by sharedPreferences(context, 4, prefName = prefName)\\n")
+    ("    var executorSlotCountScale by sharedPreferences(context, 6, prefName = prefName)\n",
+     "    var executorSlotCountScale by sharedPreferences(context, 4, prefName = prefName)\n")
 ])
 
 edit("app/src/main/java/org/stratoemu/strato/settings/NativeSettings.kt", [
-    ("        pref.executorSlotCountScale,\\n", "        pref.effectiveExecutorSlotCountScale,\\n"),
-    ("        pref.executorFlushThreshold,\\n", "        pref.effectiveExecutorFlushThreshold,\\n"),
-    ("        pref.freeGuestTextureMemory,\\n", "        pref.effectiveFreeGuestTextureMemory,\\n")
+    ("        pref.executorSlotCountScale,\n", "        pref.effectiveExecutorSlotCountScale,\n"),
+    ("        pref.executorFlushThreshold,\n", "        pref.effectiveExecutorFlushThreshold,\n"),
+    ("        pref.freeGuestTextureMemory,\n", "        pref.effectiveFreeGuestTextureMemory,\n")
 ])
 
 # Keep the per-frame overlay lightweight on Adreno 619: do not format locale-aware
