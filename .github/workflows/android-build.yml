@@ -3,6 +3,7 @@ name: Android CI and Release
 on:
   push:
     branches:
+      - master
       - main
       - fix/re4-video-decoder
       - feat/advanced-graphics-video-m23
@@ -211,7 +212,7 @@ jobs:
       version_code: ${{ steps.version.outputs.version_code }}
       release_tag: ${{ steps.version.outputs.release_tag }}
       persistent_signing: ${{ steps.signing.outputs.persistent }}
-    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.build_reference_core) || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/fix/re4-video-decoder' || github.ref == 'refs/heads/feat/advanced-graphics-video-m23')) }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.build_reference_core) || (github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/fix/re4-video-decoder' || github.ref == 'refs/heads/feat/advanced-graphics-video-m23')) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 180
     steps:
@@ -414,7 +415,7 @@ jobs:
   publish-reference-release:
     name: Publish verified native Skyline Dimm APK
     needs: [build, reference-core-build]
-    if: ${{ success() && needs.reference-core-build.outputs.persistent_signing == 'true' && ((github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.build_reference_core)) }}
+    if: ${{ success() && needs.reference-core-build.outputs.persistent_signing == 'true' && ((github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')) || (github.event_name == 'workflow_dispatch' && inputs.build_reference_core)) }}
     runs-on: ubuntu-24.04
     steps:
       - name: Download verified native APK
