@@ -25,6 +25,7 @@ source = source.replace("import com.google.android.material.snackbar.Snackbar\n"
 if "showKofiSupportDialog()" not in source:
     raise SystemExit("Original support dialog call not found")
 source = source.replace("showKofiSupportDialog()", "showPixSupportDialog()", 1)
+source = source.replace("private fun showKofiSupportDialog()", "private fun showPixSupportDialog()", 1)
 start = source.index("    private fun showPixSupportDialog() {")
 end = source.index("\n    private fun setAppListDecoration()", start)
 new_function = r'''    private fun showPixSupportDialog() {
