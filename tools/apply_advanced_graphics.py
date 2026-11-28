@@ -114,6 +114,15 @@ edit("app/src/main/res/layout/app_item_grid_compact.xml", [
 # Existing real Vulkan internal-resolution scaling is already implemented by this pinned source.
 # Add per-game/global sampler controls, passed all the way from Android preferences to Vulkan.
 edit("app/src/main/java/org/stratoemu/strato/settings/EmulationSettings.kt", [
+    ("    var isDocked by sharedPreferences(context, true, prefName = prefName)\n",
+     "    var isDocked by sharedPreferences(context, false, prefName = prefName)\n"),
+    ("    var perfStats by sharedPreferences(context, false, prefName = prefName)\n",
+     "    var perfStats by sharedPreferences(context, true, prefName = prefName)\n"),
+    ("    var useDirectMemoryImport by sharedPreferences(context, false, prefName = prefName)\n",
+     "    var useDirectMemoryImport by sharedPreferences(context, true, prefName = prefName)\n")
+])
+
+edit("app/src/main/java/org/stratoemu/strato/settings/EmulationSettings.kt", [
     ("    var resolutionScale by sharedPreferences(context, 2, prefName = prefName)\n",
      "    var resolutionScale by sharedPreferences(context, 2, prefName = prefName)\n"
      "    var mipmapLodBias by sharedPreferences(context, 0, prefName = prefName) // quarter mip levels\n"
@@ -210,6 +219,12 @@ edit("app/src/main/res/xml/emulation_preferences.xml", [
      '            app:title="@string/max_anisotropy"\n'
      '            app:useSimpleSummaryProvider="true" />\n'
      '        <SwitchPreferenceCompat\n            android:defaultValue="true"\n            android:summaryOff="@string/triple_buffering_disabled"'),
+    ('<SwitchPreferenceCompat\n            android:defaultValue="true"\n            android:summaryOff="@string/handheld_enabled"\n            android:summaryOn="@string/docked_enabled"\n            app:key="is_docked"',
+     '<SwitchPreferenceCompat\n            android:defaultValue="false"\n            android:summaryOff="@string/handheld_enabled"\n            android:summaryOn="@string/docked_enabled"\n            app:key="is_docked"'),
+    ('<SwitchPreferenceCompat\n            android:defaultValue="false"\n            android:summaryOff="@string/perf_stats_desc_off"\n            android:summaryOn="@string/perf_stats_desc_on"\n            app:key="perf_stats"',
+     '<SwitchPreferenceCompat\n            android:defaultValue="true"\n            android:summaryOff="@string/perf_stats_desc_off"\n            android:summaryOn="@string/perf_stats_desc_on"\n            app:key="perf_stats"'),
+    ('<SwitchPreferenceCompat\n            android:defaultValue="false"\n            android:summary="@string/use_direct_memory_import_desc"\n            app:key="use_direct_memory_import"',
+     '<SwitchPreferenceCompat\n            android:defaultValue="true"\n            android:summary="@string/use_direct_memory_import_desc"\n            app:key="use_direct_memory_import"'),
     ('''            app:key="resolution_scale"
             app:refreshRequired="true"
             app:title="@string/resolution_scale"
