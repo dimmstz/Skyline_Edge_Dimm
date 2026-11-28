@@ -328,10 +328,25 @@ for value in ("Personalizado", "FPS equilibrado (0,75x)", "Desempenho (0,50x)", 
 ET.indent(res, space="    ")
 ET.ElementTree(res).write(locale / "dimm_advanced_graphics.xml", encoding="utf-8", xml_declaration=True)
 
-# Verify all translated source keys exist and that untranslated strings safely fall back to English.
+# Verify translated keys against the complete default resource set. Some settings
+# strings are generated into dimm_advanced_graphics.xml by the preceding workflow step.
 for filename, mapping in (("strings.xml", STRINGS), ("strings_mali_library.xml", MALI)):
-    original = {n.attrib["name"] for n in ET.parse(base / filename).getroot().findall("string")}
-    translated = {n.attrib["name"] for n in ET.parse(locale / filename).getroot().findall("string")}
+    if filename == "strings.xml":
+        source_files = list(base.glob("*.xml"))
+    else:
+        source_files = [base / filename]
+    original = set()
+    for source_file in source_files:
+        source_root = ET.parse(source_file).getroot()
+        original.update(
+            node.attrib["name"]
+            for node in source_root.findall("string")
+            if "name" in node.attrib
+        )
+    translated = {
+        n.attrib["name"]
+        for n in ET.parse(locale / filename).getroot().findall("string")
+    }
     if not set(mapping).issubset(original) or translated != set(mapping):
         raise SystemExit(f"Falha de validação da tradução: {filename}")
 # Register pt-BR in the app's language picker while preserving every existing locale.
