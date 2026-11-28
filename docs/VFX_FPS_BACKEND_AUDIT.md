@@ -49,3 +49,31 @@ A implementação segura requer instrumentação e classificação verificável 
 ## Integridade de vídeo
 
 Esta etapa não altera NVDEC, VIC, FFmpeg, a apresentação de frames de vídeo, o swapchain, render-pass/framebuffer cache ou dimensões dos attachments. Isso evita introduzir regressões nas cutscenes enquanto os efeitos ainda não podem ser classificados.
+
+
+## CPU, GPU, memória e estabilidade
+
+A revisão também foi conferida contra as configurações realmente consumidas pelo código nativo:
+
+- **Fila do executor Vulkan:** `executorSlotCountScale` controla o número de slots concorrentes; aumentar pode melhorar sobreposição em alguns drivers, mas também aumenta recursos em voo e memória. Reduzir demais pode deixar a GPU ociosa.
+- **Limiar de envio:** `executorFlushThreshold` controla o volume de comandos acumulados antes do envio. Limiar maior pode reduzir chamadas/submissões do lado da CPU, mas aumenta fila/latência e memória temporária; limiar menor pode fazer o oposto.
+- **Liberação de texturas do jogo:** `freeGuestTextureMemory` reduz retenção de memória de texturas, mas pode provocar novas cópias/decodificações e stutter quando o jogo reutiliza o recurso.
+- **Triple buffering e frame throttling:** manter ativos por padrão. Desativar throttling pode criar trabalho extra e aquecimento sem aumentar FPS apresentado; triple buffering também influencia a estabilidade de apresentação.
+- **Shader/pipeline cache:** manter ativo. Desativá-lo costuma aumentar recompilações e stutter.
+- **Direct memory import:** manter desligado em Mali; o caminho de importação direta desta base é específico de KGSL/Adreno.
+- **GPU clocks máximos:** não forçar por padrão. Pode elevar consumo/temperatura e acionar thermal throttling, piorando sessões longas.
+- **Readback/subgroup hacks e validation layers:** permanecer desativados em builds normais; são caminhos de compatibilidade/diagnóstico, não ganhos universais.
+
+### Perfil adicional de pouca memória
+
+Foi acrescentado o perfil **Low memory** à interface e à ponte JNI. Ele aplica 0,50x de resolução interna, LOD bias +2, anisotropia 1x, reduz slots concorrentes do executor para 2, usa limiar de flush 128 e habilita a liberação de texturas do guest. É uma opção de contingência para dispositivos sob pressão de RAM/GPU memory; pode aumentar recargas de textura e stutter. Não é o perfil recomendado para maior FPS sustentado.
+
+Os perfis continuam por jogo quando o usuário habilita configurações personalizadas. O modo Custom mantém os valores manuais. Nenhum perfil desativa frame pacing, cache de shaders, áudio, NVDEC/VIC, validações de formato ou caminhos de compatibilidade. A opção de pouca memória deve ser comparada por jogo com o perfil Balanced e com Custom.
+
+### Prioridade para ganhos de FPS sem quebrar compatibilidade
+
+1. Ajustar resolução interna e LOD bias antes de alterar semântica de shaders ou render targets.
+2. Medir frametime e estabilidade em sessões longas, não apenas FPS médio.
+3. Comparar valores do executor/flush em jogos representativos e em Adreno/Mali antes de alterar defaults.
+4. Preservar caches e sincronização de quadros; não forçar FP16 nem remover passes de jogo sem análise por shader/título.
+5. Registrar pressão de memória e thermal throttling separadamente: queda de FPS por temperatura não é resolvida aumentando clocks permanentemente.
