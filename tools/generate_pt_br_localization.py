@@ -63,7 +63,7 @@ STRINGS = {
 "handheld_enabled":"O sistema simulará o modo portátil","docked_enabled":"O sistema simulará o modo de console na base",
 "username":"Nome de usuário","profile_picture":"Foto do perfil","profile_picture_not_selected":"Nenhuma imagem selecionada",
 "system_language":"Idioma do sistema","system_region":"Região do sistema","internet":"O sistema poderá acessar a internet",
-"display":"Tela","graphics_quality":"Qualidade gráfica e texturas","graphics_drivers":"Drivers gráficos","performance_stability":"Desempenho e estabilidade","perf_stats":"Mostrar estatísticas de desempenho",
+"display":"Tela","graphics_quality":"Qualidade gráfica e texturas","graphics_drivers":"Drivers gráficos","perf_stats":"Mostrar estatísticas de desempenho",
 "perf_stats_desc_off":"As estatísticas de desempenho não serão exibidas",
 "perf_stats_desc_on":"As estatísticas de desempenho serão exibidas no canto superior esquerdo",
 "max_refresh_rate":"Usar taxa máxima de atualização da tela",
