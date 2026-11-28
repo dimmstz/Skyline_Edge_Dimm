@@ -32,10 +32,6 @@ checks = {
                            ["gradle-8.7-bin.zip"]),
     "Android preference model": ("app/src/main/java/org/stratoemu/strato/settings/EmulationSettings.kt",
                                  ["mipmapLodBias", "maxAnisotropy", "performanceProfile", "effectiveResolutionScale", "effectiveMipmapLodBias", "effectiveMaxAnisotropy", "effectiveExecutorSlotCountScale", "effectiveExecutorFlushThreshold", "effectiveFreeGuestTextureMemory"]),
-    "Requested default emulation preferences": ("app/src/main/res/xml/emulation_preferences.xml",
-        ['android:defaultValue="false"\n            android:summaryOff="@string/handheld_enabled"\n            android:summaryOn="@string/docked_enabled"\n            app:key="is_docked"',
-         'android:defaultValue="true"\n            android:summaryOff="@string/perf_stats_desc_off"\n            android:summaryOn="@string/perf_stats_desc_on"\n            app:key="perf_stats"',
-         'android:defaultValue="true"\n            android:summary="@string/use_direct_memory_import_desc"\n            app:key="use_direct_memory_import"']),
     "Requested Kotlin preference defaults": ("app/src/main/java/org/stratoemu/strato/settings/EmulationSettings.kt",
         ["isDocked by sharedPreferences(context, false", "perfStats by sharedPreferences(context, true",
          "useDirectMemoryImport by sharedPreferences(context, true)"]),
@@ -107,6 +103,30 @@ for label, (path, needles) in checks.items():
     missing = [needle for needle in needles if needle not in source]
     if missing:
         raise SystemExit(f"{label}: missing expected implementation: {missing}")
+
+# Validate preference defaults structurally: Android XML serializers may reorder
+# attributes or change indentation without changing the actual preference values.
+import xml.etree.ElementTree as ET
+preferences_xml = ET.parse(root / "app/src/main/res/xml/emulation_preferences.xml").getroot()
+android_ns = "{http://schemas.android.com/apk/res/android}"
+app_ns = "{http://schemas.android.com/apk/res-auto}"
+preferences_by_key = {
+    element.get(app_ns + "key") or element.get(android_ns + "key"): element
+    for element in preferences_xml.iter()
+    if element.get(app_ns + "key") or element.get(android_ns + "key")
+}
+expected_defaults = {
+    "is_docked": "false",
+    "perf_stats": "true",
+    "use_direct_memory_import": "true",
+}
+for key, expected in expected_defaults.items():
+    preference = preferences_by_key.get(key)
+    actual = preference.get(android_ns + "defaultValue") if preference is not None else None
+    if actual != expected:
+        raise SystemExit(
+            f"Requested default emulation preference {key}: expected {expected}, got {actual}"
+        )
 
 pt_settings = root / "app/src/main/res/values-pt-rBR/settings_design.xml"
 if not pt_settings.is_file():
