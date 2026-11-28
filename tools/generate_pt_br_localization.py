@@ -14,7 +14,7 @@ locale.mkdir(parents=True, exist_ok=True)
 # Every key below is an Android resource name; placeholders and technical identifiers
 # are deliberately preserved. Missing keys remain available through Android's English fallback.
 STRINGS = {
-"mali_kofi_not_now":"Fechar",
+"dimm_pix_close":"Fechar",
 "dimm_pix_title":"Apoie o Skyline Dimm",
 "dimm_pix_message":"Contribua com o desenvolvimento do Skyline Dimm usando Pix. Escaneie o QR Code ou copie o código Pix.",
 "dimm_pix_copy":"Copiar código Pix",
