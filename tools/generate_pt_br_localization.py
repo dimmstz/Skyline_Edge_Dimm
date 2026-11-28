@@ -320,13 +320,14 @@ advanced = {
     "max_anisotropy":"Filtragem anisotrópica",
     "max_anisotropy_desc":"Substitui a anisotropia definida pelo jogo quando compatível com a GPU. Valores maiores podem melhorar superfícies em ângulo, mas reduzir o desempenho. Reinicie o jogo após alterar.",
     "performance_profile":"Perfil de desempenho",
-    "performance_profile_desc":"Aplica um perfil aos controles existentes de resolução interna, Mipmap LOD bias e anisotropia. As alterações entram em vigor ao reiniciar o jogo. Personalizado mantém seus valores individuais."
+    "performance_profile_desc":"Aplica perfis conservadores à resolução, filtragem de texturas e uso da fila/memória da GPU. O perfil de pouca memória pode recarregar texturas com mais frequência. A sincronização de quadros, o cache de shaders e os caminhos de compatibilidade permanecem ativos.",
+    "performance_stability":"Desempenho, CPU e memória"
 }
 res = ET.Element("resources")
 for key, value in advanced.items():
     ET.SubElement(res, "string", {"name":key}).text = value
 profile_entries = ET.SubElement(res, "string-array", {"name":"performance_profile_entries"})
-for value in ("Personalizado", "FPS equilibrado (0,75x)", "Desempenho (0,50x)", "Automático GPU (Adreno/Mali)"):
+for value in ("Personalizado", "FPS equilibrado (0,75x)", "Desempenho (0,50x)", "Automático GPU (Adreno/Mali)", "Pouca memória (pode recarregar texturas)"):
     ET.SubElement(profile_entries, "item").text = value
 ET.indent(res, space="    ")
 ET.ElementTree(res).write(locale / "dimm_advanced_graphics.xml", encoding="utf-8", xml_declaration=True)
