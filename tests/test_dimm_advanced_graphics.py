@@ -34,7 +34,7 @@ checks = {
                                  ["mipmapLodBias", "maxAnisotropy", "performanceProfile", "effectiveResolutionScale", "effectiveMipmapLodBias", "effectiveMaxAnisotropy", "effectiveExecutorSlotCountScale", "effectiveExecutorFlushThreshold", "effectiveFreeGuestTextureMemory"]),
     "Requested Kotlin preference defaults": ("app/src/main/java/org/stratoemu/strato/settings/EmulationSettings.kt",
         ["isDocked by sharedPreferences(context, false", "perfStats by sharedPreferences(context, true",
-         "useDirectMemoryImport by sharedPreferences(context, true)"]),
+         "useDirectMemoryImport by sharedPreferences(context, true"]),
     "Native settings serialization": ("app/src/main/java/org/stratoemu/strato/settings/NativeSettings.kt",
                                        ["pref.effectiveMipmapLodBias", "pref.effectiveMaxAnisotropy", "pref.effectiveResolutionScale", "pref.performanceProfile", "pref.effectiveExecutorSlotCountScale", "pref.effectiveExecutorFlushThreshold", "pref.effectiveFreeGuestTextureMemory"]),
     "JNI settings bridge": ("app/src/main/cpp/skyline/common/android_settings.h",
