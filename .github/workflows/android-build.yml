@@ -233,7 +233,7 @@ jobs:
 
       # One-time destructive reset, enabled only by the dedicated commit message.
       - name: Remove all previous GitHub releases and tags (one-time reset)
-        if: ${{ github.event_name == 'push' && github.event.head_commit.message == 'release: reset releases and tags' }}
+        if: ${{ github.event_name == 'push' && github.event.head_commit.message == 'reset-releases-and-tags' }}
         uses: actions/github-script@v7
         with:
           script: |
