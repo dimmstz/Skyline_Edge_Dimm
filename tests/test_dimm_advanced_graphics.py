@@ -31,9 +31,9 @@ checks = {
     "Gradle 8.7 wrapper": ("gradle/wrapper/gradle-wrapper.properties",
                            ["gradle-8.7-bin.zip"]),
     "Android preference model": ("app/src/main/java/org/stratoemu/strato/settings/EmulationSettings.kt",
-                                 ["mipmapLodBias", "maxAnisotropy", "performanceProfile", "effectiveResolutionScale", "effectiveMipmapLodBias", "effectiveMaxAnisotropy"]),
+                                 ["mipmapLodBias", "maxAnisotropy", "performanceProfile", "effectiveResolutionScale", "effectiveMipmapLodBias", "effectiveMaxAnisotropy", "effectiveExecutorSlotCountScale", "effectiveExecutorFlushThreshold", "effectiveFreeGuestTextureMemory"]),
     "Native settings serialization": ("app/src/main/java/org/stratoemu/strato/settings/NativeSettings.kt",
-                                       ["pref.effectiveMipmapLodBias", "pref.effectiveMaxAnisotropy", "pref.effectiveResolutionScale", "pref.performanceProfile"]),
+                                       ["pref.effectiveMipmapLodBias", "pref.effectiveMaxAnisotropy", "pref.effectiveResolutionScale", "pref.performanceProfile", "pref.effectiveExecutorSlotCountScale", "pref.effectiveExecutorFlushThreshold", "pref.effectiveFreeGuestTextureMemory"]),
     "JNI settings bridge": ("app/src/main/cpp/skyline/common/android_settings.h",
                             ['GetInt<int>("mipmapLodBias")', 'GetInt<int>("maxAnisotropy")', 'GetInt<int>("performanceProfile")']),
     "Native settings storage": ("app/src/main/cpp/skyline/common/settings.h",
@@ -129,7 +129,7 @@ pt_advanced = root / "app/src/main/res/values-pt-rBR/dimm_advanced_graphics.xml"
 if not pt_advanced.is_file():
     raise SystemExit("Portuguese performance profile translations were not generated")
 pt_advanced_text = pt_advanced.read_text(encoding="utf-8")
-for translated in ("Perfil de desempenho", "FPS equilibrado (0,75x)", "Desempenho (0,50x)", "Automático GPU (Adreno/Mali)"):
+for translated in ("Perfil de desempenho", "FPS equilibrado (0,75x)", "Desempenho (0,50x)", "Automático GPU (Adreno/Mali)", "Pouca memória (pode recarregar texturas)"):
     if translated not in pt_advanced_text:
         raise SystemExit(f"Missing Brazilian Portuguese performance profile translation: {translated}")
 
@@ -144,6 +144,14 @@ if not all(f"<item>{v}</item>" in resources for v in (0,4,8)):
     raise SystemExit("Mipmap LOD bias preset values are incomplete")
 if "Auto GPU (Adreno/Mali)" not in resources or "<item>3</item>" not in resources:
     raise SystemExit("Automatic Adreno/Mali profile option is missing")
+if "Low memory (may reload textures)" not in resources or "<item>4</item>" not in resources:
+    raise SystemExit("Low-memory profile option is missing")
+for required in ("effectiveExecutorSlotCountScale", "effectiveExecutorFlushThreshold",
+                 "effectiveFreeGuestTextureMemory", "performanceProfile == 4"):
+    if required not in read("app/src/main/java/org/stratoemu/strato/settings/EmulationSettings.kt"):
+        raise SystemExit(f"Low-memory profile mapping is missing: {required}")
+if "pref.effectiveExecutorSlotCountScale" not in read("app/src/main/java/org/stratoemu/strato/settings/NativeSettings.kt"):
+    raise SystemExit("Low-memory executor slot setting is not passed to native code")
 
 vic = read("app/src/main/cpp/skyline/soc/host1x/video/video_core/host1x/vic_processor.cpp")
 for obsolete in (
