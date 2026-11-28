@@ -14,9 +14,12 @@ locale.mkdir(parents=True, exist_ok=True)
 # Every key below is an Android resource name; placeholders and technical identifiers
 # are deliberately preserved. Missing keys remain available through Android's English fallback.
 STRINGS = {
-"mali_kofi_title":"Apoie o Strato Mali 🫐",
-"mali_kofi_message":"O desenvolvedor do Strato Mali preparou este aplicativo para você. Se quiser, ofereça um café pelo Ko-fi. ☕🫐",
-"mali_kofi_button":"Ko-fi","mali_kofi_not_now":"Agora não","mali_kofi_open_failed":"Não foi possível encontrar um navegador para abrir o Ko-fi.",
+"mali_kofi_not_now":"Fechar",
+"dimm_pix_title":"Apoie o Skyline Dimm",
+"dimm_pix_message":"Contribua com o desenvolvimento do Skyline Dimm usando Pix. Escaneie o QR Code ou copie o código Pix.",
+"dimm_pix_copy":"Copiar código Pix",
+"dimm_pix_copied":"Código Pix copiado",
+"dimm_pix_qr_description":"QR Code Pix para apoiar o Skyline Dimm",
 "search":"Pesquisar","error":"Ocorreu um erro","copied_to_clipboard":"Copiado para a área de transferência",
 "emulator":"Emulador","enabled":"Ativado","settings":"Configurações","share_logs":"Compartilhar registros","refresh":"Atualizar",
 "log_share_prompt":"Compartilhar arquivo de registro","logs_not_found":"Nenhum registro foi criado durante a última execução",
