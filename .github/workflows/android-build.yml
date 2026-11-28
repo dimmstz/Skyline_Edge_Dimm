@@ -231,6 +231,43 @@ jobs:
           ref: ${{ github.sha }}
           path: project
 
+      # One-time destructive reset, enabled only by the dedicated commit message.
+      - name: Remove all previous GitHub releases and tags (one-time reset)
+        if: ${{ github.event_name == 'push' && github.event.head_commit.message == 'release: reset releases and tags' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const releases = await github.paginate(
+              github.rest.repos.listReleases,
+              { owner, repo, per_page: 100 }
+            );
+
+            for (const release of releases) {
+              await github.rest.repos.deleteRelease({
+                owner,
+                repo,
+                release_id: release.id
+              });
+              core.info(`Deleted release ${release.tag_name} (id ${release.id}).`);
+            }
+
+            const tagRefs = await github.paginate(
+              github.rest.git.listMatchingRefs,
+              { owner, repo, ref: 'tags/', per_page: 100 }
+            );
+
+            for (const tag of tagRefs) {
+              await github.rest.git.deleteRef({
+                owner,
+                repo,
+                ref: tag.ref.replace(/^refs\//, '')
+              });
+              core.info(`Deleted tag ${tag.ref}.`);
+            }
+
+            core.info(`Reset complete: ${releases.length} releases and ${tagRefs.length} tags deleted.`);
+
       - name: Restore all pinned source submodules
         working-directory: reference/strato
         shell: bash
