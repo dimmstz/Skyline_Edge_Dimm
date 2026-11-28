@@ -295,7 +295,7 @@ resources.write_text("""<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="graphics_quality">Qualidade gráfica</string>
     <string name="graphics_drivers">Drivers gráficos</string>
-    <string name="performance_stability">Desempenho e estabilidade</string>
+    <string name="performance_stability">Desempenho, CPU e memória</string>
     <string name="advanced_graphics_controls">GPU e desempenho avançado</string>
     <string name="mipmap_lod_bias">Mipmap LOD bias</string>
     <string name="mipmap_lod_bias_desc">Positive values select lower-resolution mip levels at distance and can reduce texture bandwidth. Negative values sharpen distant textures but may cause shimmering. Restart the game after changing.</string>
@@ -310,12 +310,12 @@ resources.write_text("""<?xml version="1.0" encoding="utf-8"?>
     <string name="max_anisotropy">Anisotropic filtering override</string>
     <string name="max_anisotropy_desc">Overrides game-provided texture anisotropy when supported by the GPU. Higher values can improve angled surfaces but may cost performance. Restart the game after changing.</string>
     <string name="performance_profile">Performance profile</string>
-    <string name="performance_profile_desc">Applies a preset to the existing internal resolution, mipmap LOD bias and anisotropy controls. Changes take effect when the game is restarted. Custom keeps your individual values.</string>
+    <string name="performance_profile_desc">Applies conservative presets to render resolution, texture filtering and GPU queue/memory usage. The low-memory profile may reload textures more often. Frame pacing, shader cache and game compatibility paths remain enabled.</string>
     <string-array name="performance_profile_entries">
-        <item>Custom</item><item>Balanced FPS (0.75x)</item><item>Performance (0.50x)</item>
+        <item>Custom</item><item>Balanced FPS (0.75x)</item><item>Performance (0.50x)</item><item>Low memory (may reload textures)</item>
     </string-array>
     <integer-array name="performance_profile_values">
-        <item>0</item><item>1</item><item>2</item>
+        <item>0</item><item>1</item><item>2</item><item>4</item>
     </integer-array>
     <string-array name="max_anisotropy_entries" translatable="false">
         <item>Game default</item><item>1x</item><item>2x</item><item>4x</item><item>8x</item><item>16x (device-limited)</item>
@@ -332,9 +332,12 @@ edit("app/src/main/java/org/stratoemu/strato/settings/EmulationSettings.kt", [
     ("    var resolutionScale by sharedPreferences(context, 2, prefName = prefName)\n",
      "    var resolutionScale by sharedPreferences(context, 2, prefName = prefName)\n"
      "    var performanceProfile by sharedPreferences(context, 0, prefName = prefName)\n"
-     "    val effectiveResolutionScale: Int get() = when (performanceProfile) { 1 -> 1; 2 -> 0; else -> resolutionScale }\n"
-     "    val effectiveMipmapLodBias: Int get() = when (performanceProfile) { 1 -> 1; 2 -> 3; else -> mipmapLodBias }\n"
-     "    val effectiveMaxAnisotropy: Int get() = when (performanceProfile) { 1 -> 2; 2 -> 1; else -> maxAnisotropy }\n")
+     "    val effectiveResolutionScale: Int get() = when (performanceProfile) { 1 -> 1; 2, 4 -> 0; else -> resolutionScale }\n"
+     "    val effectiveMipmapLodBias: Int get() = when (performanceProfile) { 1 -> 1; 2 -> 3; 4 -> 8; else -> mipmapLodBias }\n"
+     "    val effectiveMaxAnisotropy: Int get() = when (performanceProfile) { 1 -> 2; 2, 4 -> 1; else -> maxAnisotropy }\n"
+     "    val effectiveExecutorSlotCountScale: Int get() = if (performanceProfile == 4) 2 else executorSlotCountScale\n"
+     "    val effectiveExecutorFlushThreshold: Int get() = if (performanceProfile == 4) 128 else executorFlushThreshold\n"
+     "    val effectiveFreeGuestTextureMemory: Boolean get() = performanceProfile == 4 || freeGuestTextureMemory\n")
 ])
 
 edit("app/src/main/java/org/stratoemu/strato/settings/NativeSettings.kt", [
@@ -344,6 +347,17 @@ edit("app/src/main/java/org/stratoemu/strato/settings/NativeSettings.kt", [
      "        pref.effectiveResolutionScale,\n"
      "        pref.effectiveMipmapLodBias,\n"
      "        pref.effectiveMaxAnisotropy\n")
+])
+
+edit("app/src/main/java/org/stratoemu/strato/settings/EmulationSettings.kt", [
+    ("    var executorSlotCountScale by sharedPreferences(context, 6, prefName = prefName)\\n",
+     "    var executorSlotCountScale by sharedPreferences(context, 4, prefName = prefName)\\n")
+])
+
+edit("app/src/main/java/org/stratoemu/strato/settings/NativeSettings.kt", [
+    ("        pref.executorSlotCountScale,\\n", "        pref.effectiveExecutorSlotCountScale,\\n"),
+    ("        pref.executorFlushThreshold,\\n", "        pref.effectiveExecutorFlushThreshold,\\n"),
+    ("        pref.freeGuestTextureMemory,\\n", "        pref.effectiveFreeGuestTextureMemory,\\n")
 ])
 
 # Keep the per-frame overlay lightweight on Adreno 619: do not format locale-aware
@@ -713,9 +727,9 @@ edit("app/src/main/cpp/skyline/gpu.cpp", [
 
 edit("app/src/main/res/values/dimm_advanced_graphics.xml", [
     ("<item>Custom</item><item>Balanced FPS (0.75x)</item><item>Performance (0.50x)</item>",
-     "<item>Custom</item><item>Balanced FPS (0.75x)</item><item>Performance (0.50x)</item><item>Auto GPU (Adreno/Mali)</item>"),
+     "<item>Custom</item><item>Balanced FPS (0.75x)</item><item>Performance (0.50x)</item><item>Auto GPU (Adreno/Mali)</item><item>Low memory (may reload textures)</item>"),
     ("<item>0</item><item>1</item><item>2</item>\n    </integer-array>",
-     "<item>0</item><item>1</item><item>2</item><item>3</item>\n    </integer-array>")
+     "<item>0</item><item>1</item><item>2</item><item>3</item><item>4</item>\n    </integer-array>")
 ])
 
 print("Applied Vulkan vendor detection: Qualcomm Adreno (0x5143), ARM Mali (0x13B5), conservative automatic resolution/LOD/anisotropy profile, and unknown-vendor fallback.");
