@@ -31,9 +31,12 @@ checks = {
     "Gradle 8.7 wrapper": ("gradle/wrapper/gradle-wrapper.properties",
                            ["gradle-8.7-bin.zip"]),
     "Android preference model": ("app/src/main/java/org/stratoemu/strato/settings/EmulationSettings.kt",
-                                 ["mipmapLodBias", "maxAnisotropy", "performanceProfile", "effectiveResolutionScale", "effectiveMipmapLodBias", "effectiveMaxAnisotropy"]),
+                                 ["mipmapLodBias", "maxAnisotropy", "performanceProfile", "effectiveResolutionScale", "effectiveMipmapLodBias", "effectiveMaxAnisotropy", "effectiveExecutorSlotCountScale", "effectiveExecutorFlushThreshold", "effectiveFreeGuestTextureMemory"]),
+    "Requested Kotlin preference defaults": ("app/src/main/java/org/stratoemu/strato/settings/EmulationSettings.kt",
+        ["isDocked by sharedPreferences(context, false", "perfStats by sharedPreferences(context, true",
+         "useDirectMemoryImport by sharedPreferences(context, true"]),
     "Native settings serialization": ("app/src/main/java/org/stratoemu/strato/settings/NativeSettings.kt",
-                                       ["pref.effectiveMipmapLodBias", "pref.effectiveMaxAnisotropy", "pref.effectiveResolutionScale", "pref.performanceProfile"]),
+                                       ["pref.effectiveMipmapLodBias", "pref.effectiveMaxAnisotropy", "pref.effectiveResolutionScale", "pref.performanceProfile", "pref.effectiveExecutorSlotCountScale", "pref.effectiveExecutorFlushThreshold", "pref.effectiveFreeGuestTextureMemory"]),
     "JNI settings bridge": ("app/src/main/cpp/skyline/common/android_settings.h",
                             ['GetInt<int>("mipmapLodBias")', 'GetInt<int>("maxAnisotropy")', 'GetInt<int>("performanceProfile")']),
     "Native settings storage": ("app/src/main/cpp/skyline/common/settings.h",
@@ -52,10 +55,9 @@ checks = {
         ["Setting<int> performanceProfile"]),
     "Automatic GPU profile reaches native settings": ("app/src/main/cpp/skyline/common/android_settings.h",
         ['GetInt<int>("performanceProfile")']),
-    "Advanced GPU category title": ("app/src/main/res/xml/emulation_preferences.xml",
-                                     ['android:key="category_gpu"', 'android:title="@string/advanced_graphics_controls"']),
-    "Advanced GPU category translation": ("app/src/main/res/values/dimm_advanced_graphics.xml",
-                                          ["GPU e desempenho avançado"]),
+    "Organized graphics, driver and performance categories": ("app/src/main/res/xml/emulation_preferences.xml",
+                                     ["category_graphics_quality", "category_gpu_driver", "category_performance",
+                                      "@string/graphics_quality", "@string/graphics_drivers", "@string/performance_stability"]),
     "Resolution and texture UI": ("app/src/main/res/xml/emulation_preferences.xml",
                                   ['app:key="mipmap_lod_bias"', 'app:key="max_anisotropy"', 'app:key="resolution_scale"', 'app:key="performance_profile"']),
     "GPU settings section visibility": ("app/src/main/java/org/stratoemu/strato/settings/GlobalSettingsFragment.kt",
@@ -102,6 +104,30 @@ for label, (path, needles) in checks.items():
     if missing:
         raise SystemExit(f"{label}: missing expected implementation: {missing}")
 
+# Validate preference defaults structurally: Android XML serializers may reorder
+# attributes or change indentation without changing the actual preference values.
+import xml.etree.ElementTree as ET
+preferences_xml = ET.parse(root / "app/src/main/res/xml/emulation_preferences.xml").getroot()
+android_ns = "{http://schemas.android.com/apk/res/android}"
+app_ns = "{http://schemas.android.com/apk/res-auto}"
+preferences_by_key = {
+    element.get(app_ns + "key") or element.get(android_ns + "key"): element
+    for element in preferences_xml.iter()
+    if element.get(app_ns + "key") or element.get(android_ns + "key")
+}
+expected_defaults = {
+    "is_docked": "false",
+    "perf_stats": "true",
+    "use_direct_memory_import": "true",
+}
+for key, expected in expected_defaults.items():
+    preference = preferences_by_key.get(key)
+    actual = preference.get(android_ns + "defaultValue") if preference is not None else None
+    if actual != expected:
+        raise SystemExit(
+            f"Requested default emulation preference {key}: expected {expected}, got {actual}"
+        )
+
 pt_settings = root / "app/src/main/res/values-pt-rBR/settings_design.xml"
 if not pt_settings.is_file():
     raise SystemExit("Portuguese settings translations were not generated")
@@ -130,7 +156,7 @@ pt_advanced = root / "app/src/main/res/values-pt-rBR/dimm_advanced_graphics.xml"
 if not pt_advanced.is_file():
     raise SystemExit("Portuguese performance profile translations were not generated")
 pt_advanced_text = pt_advanced.read_text(encoding="utf-8")
-for translated in ("Perfil de desempenho", "FPS equilibrado (0,75x)", "Desempenho (0,50x)", "Automático GPU (Adreno/Mali)"):
+for translated in ("Perfil de desempenho", "FPS equilibrado (0,75x)", "Desempenho (0,50x)", "Automático GPU (Adreno/Mali)", "Pouca memória (pode recarregar texturas)"):
     if translated not in pt_advanced_text:
         raise SystemExit(f"Missing Brazilian Portuguese performance profile translation: {translated}")
 
@@ -145,6 +171,14 @@ if not all(f"<item>{v}</item>" in resources for v in (0,4,8)):
     raise SystemExit("Mipmap LOD bias preset values are incomplete")
 if "Auto GPU (Adreno/Mali)" not in resources or "<item>3</item>" not in resources:
     raise SystemExit("Automatic Adreno/Mali profile option is missing")
+if "Low memory (may reload textures)" not in resources or "<item>4</item>" not in resources:
+    raise SystemExit("Low-memory profile option is missing")
+for required in ("effectiveExecutorSlotCountScale", "effectiveExecutorFlushThreshold",
+                 "effectiveFreeGuestTextureMemory", "performanceProfile == 4"):
+    if required not in read("app/src/main/java/org/stratoemu/strato/settings/EmulationSettings.kt"):
+        raise SystemExit(f"Low-memory profile mapping is missing: {required}")
+if "pref.effectiveExecutorSlotCountScale" not in read("app/src/main/java/org/stratoemu/strato/settings/NativeSettings.kt"):
+    raise SystemExit("Low-memory executor slot setting is not passed to native code")
 
 vic = read("app/src/main/cpp/skyline/soc/host1x/video/video_core/host1x/vic_processor.cpp")
 for obsolete in (

@@ -114,6 +114,15 @@ edit("app/src/main/res/layout/app_item_grid_compact.xml", [
 # Existing real Vulkan internal-resolution scaling is already implemented by this pinned source.
 # Add per-game/global sampler controls, passed all the way from Android preferences to Vulkan.
 edit("app/src/main/java/org/stratoemu/strato/settings/EmulationSettings.kt", [
+    ("    var isDocked by sharedPreferences(context, true, prefName = prefName)\n",
+     "    var isDocked by sharedPreferences(context, false, prefName = prefName)\n"),
+    ("    var perfStats by sharedPreferences(context, false, prefName = prefName)\n",
+     "    var perfStats by sharedPreferences(context, true, prefName = prefName)\n"),
+    ("    var useDirectMemoryImport by sharedPreferences(context, false, prefName = prefName)\n",
+     "    var useDirectMemoryImport by sharedPreferences(context, true, prefName = prefName)\n")
+])
+
+edit("app/src/main/java/org/stratoemu/strato/settings/EmulationSettings.kt", [
     ("    var resolutionScale by sharedPreferences(context, 2, prefName = prefName)\n",
      "    var resolutionScale by sharedPreferences(context, 2, prefName = prefName)\n"
      "    var mipmapLodBias by sharedPreferences(context, 0, prefName = prefName) // quarter mip levels\n"
@@ -210,6 +219,12 @@ edit("app/src/main/res/xml/emulation_preferences.xml", [
      '            app:title="@string/max_anisotropy"\n'
      '            app:useSimpleSummaryProvider="true" />\n'
      '        <SwitchPreferenceCompat\n            android:defaultValue="true"\n            android:summaryOff="@string/triple_buffering_disabled"'),
+    ('<SwitchPreferenceCompat\n            android:defaultValue="true"\n            android:summaryOff="@string/handheld_enabled"\n            android:summaryOn="@string/docked_enabled"\n            app:key="is_docked"',
+     '<SwitchPreferenceCompat\n            android:defaultValue="false"\n            android:summaryOff="@string/handheld_enabled"\n            android:summaryOn="@string/docked_enabled"\n            app:key="is_docked"'),
+    ('<SwitchPreferenceCompat\n            android:defaultValue="false"\n            android:summaryOff="@string/perf_stats_desc_off"\n            android:summaryOn="@string/perf_stats_desc_on"\n            app:key="perf_stats"',
+     '<SwitchPreferenceCompat\n            android:defaultValue="true"\n            android:summaryOff="@string/perf_stats_desc_off"\n            android:summaryOn="@string/perf_stats_desc_on"\n            app:key="perf_stats"'),
+    ('<SwitchPreferenceCompat\n            android:defaultValue="false"\n            android:summary="@string/use_direct_memory_import_desc"\n            app:key="use_direct_memory_import"',
+     '<SwitchPreferenceCompat\n            android:defaultValue="true"\n            android:summary="@string/use_direct_memory_import_desc"\n            app:key="use_direct_memory_import"'),
     ('''            app:key="resolution_scale"
             app:refreshRequired="true"
             app:title="@string/resolution_scale"
@@ -229,11 +244,73 @@ edit("app/src/main/res/xml/emulation_preferences.xml", [
             app:useSimpleSummaryProvider="true" />''')
 ])
 
+# Reorganize the emulation settings into focused, top-level sections.
+# Keep the existing preference objects and keys intact so stored values and listeners survive.
+import xml.etree.ElementTree as ET
+
+ET.register_namespace("android", "http://schemas.android.com/apk/res/android")
+ET.register_namespace("app", "http://schemas.android.com/apk/res-auto")
+preferences_path = root / "app/src/main/res/xml/emulation_preferences.xml"
+tree = ET.parse(preferences_path)
+preference_root = tree.getroot()
+ANDROID_NS = "{http://schemas.android.com/apk/res/android}"
+APP_NS = "{http://schemas.android.com/apk/res-auto}"
+
+def pref_key(element):
+    return element.get(APP_NS + "key") or element.get(ANDROID_NS + "key")
+
+def make_category(key, title):
+    return ET.Element("PreferenceCategory", {
+        ANDROID_NS + "key": key,
+        ANDROID_NS + "title": title,
+    })
+
+presentation = next((e for e in preference_root if e.tag == "PreferenceCategory" and e.get(ANDROID_NS + "key") == "category_presentation"), None)
+gpu = next((e for e in preference_root if e.tag == "PreferenceCategory" and e.get(ANDROID_NS + "key") == "category_gpu"), None)
+if presentation is None or gpu is None:
+    raise SystemExit("Cannot organize settings: presentation/GPU categories are missing")
+
+graphics = make_category("category_graphics_quality", "@string/graphics_quality")
+driver = make_category("category_gpu_driver", "@string/graphics_drivers")
+performance = make_category("category_performance", "@string/performance_stability")
+
+# Resolution scaling currently lives in Display; move it with texture quality controls.
+for element in list(presentation):
+    if pref_key(element) == "resolution_scale":
+        presentation.remove(element)
+        graphics.append(element)
+
+for element in list(gpu):
+    key = pref_key(element)
+    if key == "gpu_driver":
+        gpu.remove(element)
+        driver.append(element)
+    elif key in {"mipmap_lod_bias", "max_anisotropy", "performance_profile"}:
+        gpu.remove(element)
+        graphics.append(element)
+    else:
+        gpu.remove(element)
+        performance.append(element)
+
+# Keep the settings screen ordered by user task: display, visual quality, drivers,
+# performance/latency, then audio and compatibility/debug sections.
+children = list(preference_root)
+insert_at = children.index(presentation) + 1
+for category in (graphics, driver, performance):
+    preference_root.insert(insert_at, category)
+    insert_at += 1
+preference_root.remove(gpu)
+ET.indent(tree, space="    ")
+tree.write(preferences_path, encoding="utf-8", xml_declaration=True)
+
 resources = root / "app/src/main/res/values/dimm_advanced_graphics.xml"
 if resources.exists():
     raise SystemExit("Refusing to overwrite app/src/main/res/values/dimm_advanced_graphics.xml")
 resources.write_text("""<?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="graphics_quality">Qualidade gráfica</string>
+    <string name="graphics_drivers">Drivers gráficos</string>
+    <string name="performance_stability">Desempenho, CPU e memória</string>
     <string name="advanced_graphics_controls">GPU e desempenho avançado</string>
     <string name="mipmap_lod_bias">Mipmap LOD bias</string>
     <string name="mipmap_lod_bias_desc">Positive values select lower-resolution mip levels at distance and can reduce texture bandwidth. Negative values sharpen distant textures but may cause shimmering. Restart the game after changing.</string>
@@ -248,12 +325,12 @@ resources.write_text("""<?xml version="1.0" encoding="utf-8"?>
     <string name="max_anisotropy">Anisotropic filtering override</string>
     <string name="max_anisotropy_desc">Overrides game-provided texture anisotropy when supported by the GPU. Higher values can improve angled surfaces but may cost performance. Restart the game after changing.</string>
     <string name="performance_profile">Performance profile</string>
-    <string name="performance_profile_desc">Applies a preset to the existing internal resolution, mipmap LOD bias and anisotropy controls. Changes take effect when the game is restarted. Custom keeps your individual values.</string>
+    <string name="performance_profile_desc">Applies conservative presets to render resolution, texture filtering and GPU queue/memory usage. The low-memory profile may reload textures more often. Frame pacing, shader cache and game compatibility paths remain enabled.</string>
     <string-array name="performance_profile_entries">
-        <item>Custom</item><item>Balanced FPS (0.75x)</item><item>Performance (0.50x)</item>
+        <item>Custom</item><item>Balanced FPS (0.75x)</item><item>Performance (0.50x)</item><item>Low memory (may reload textures)</item>
     </string-array>
     <integer-array name="performance_profile_values">
-        <item>0</item><item>1</item><item>2</item>
+        <item>0</item><item>1</item><item>2</item><item>4</item>
     </integer-array>
     <string-array name="max_anisotropy_entries" translatable="false">
         <item>Game default</item><item>1x</item><item>2x</item><item>4x</item><item>8x</item><item>16x (device-limited)</item>
@@ -270,9 +347,12 @@ edit("app/src/main/java/org/stratoemu/strato/settings/EmulationSettings.kt", [
     ("    var resolutionScale by sharedPreferences(context, 2, prefName = prefName)\n",
      "    var resolutionScale by sharedPreferences(context, 2, prefName = prefName)\n"
      "    var performanceProfile by sharedPreferences(context, 0, prefName = prefName)\n"
-     "    val effectiveResolutionScale: Int get() = when (performanceProfile) { 1 -> 1; 2 -> 0; else -> resolutionScale }\n"
-     "    val effectiveMipmapLodBias: Int get() = when (performanceProfile) { 1 -> 1; 2 -> 3; else -> mipmapLodBias }\n"
-     "    val effectiveMaxAnisotropy: Int get() = when (performanceProfile) { 1 -> 2; 2 -> 1; else -> maxAnisotropy }\n")
+     "    val effectiveResolutionScale: Int get() = when (performanceProfile) { 1 -> 1; 2, 4 -> 0; else -> resolutionScale }\n"
+     "    val effectiveMipmapLodBias: Int get() = when (performanceProfile) { 1 -> 1; 2 -> 3; 4 -> 8; else -> mipmapLodBias }\n"
+     "    val effectiveMaxAnisotropy: Int get() = when (performanceProfile) { 1 -> 2; 2, 4 -> 1; else -> maxAnisotropy }\n"
+     "    val effectiveExecutorSlotCountScale: Int get() = if (performanceProfile == 4) 2 else executorSlotCountScale\n"
+     "    val effectiveExecutorFlushThreshold: Int get() = if (performanceProfile == 4) 128 else executorFlushThreshold\n"
+     "    val effectiveFreeGuestTextureMemory: Boolean get() = performanceProfile == 4 || freeGuestTextureMemory\n")
 ])
 
 edit("app/src/main/java/org/stratoemu/strato/settings/NativeSettings.kt", [
@@ -282,6 +362,17 @@ edit("app/src/main/java/org/stratoemu/strato/settings/NativeSettings.kt", [
      "        pref.effectiveResolutionScale,\n"
      "        pref.effectiveMipmapLodBias,\n"
      "        pref.effectiveMaxAnisotropy\n")
+])
+
+edit("app/src/main/java/org/stratoemu/strato/settings/EmulationSettings.kt", [
+    ("    var executorSlotCountScale by sharedPreferences(context, 6, prefName = prefName)\n",
+     "    var executorSlotCountScale by sharedPreferences(context, 4, prefName = prefName)\n")
+])
+
+edit("app/src/main/java/org/stratoemu/strato/settings/NativeSettings.kt", [
+    ("        pref.executorSlotCountScale,\n", "        pref.effectiveExecutorSlotCountScale,\n"),
+    ("        pref.executorFlushThreshold,\n", "        pref.effectiveExecutorFlushThreshold,\n"),
+    ("        pref.freeGuestTextureMemory,\n", "        pref.effectiveFreeGuestTextureMemory,\n")
 ])
 
 # Keep the per-frame overlay lightweight on Adreno 619: do not format locale-aware
@@ -650,10 +741,10 @@ edit("app/src/main/cpp/skyline/gpu.cpp", [
 ])
 
 edit("app/src/main/res/values/dimm_advanced_graphics.xml", [
-    ("<item>Custom</item><item>Balanced FPS (0.75x)</item><item>Performance (0.50x)</item>",
-     "<item>Custom</item><item>Balanced FPS (0.75x)</item><item>Performance (0.50x)</item><item>Auto GPU (Adreno/Mali)</item>"),
-    ("<item>0</item><item>1</item><item>2</item>\n    </integer-array>",
-     "<item>0</item><item>1</item><item>2</item><item>3</item>\n    </integer-array>")
+    ("<item>Custom</item><item>Balanced FPS (0.75x)</item><item>Performance (0.50x)</item><item>Low memory (may reload textures)</item>",
+     "<item>Custom</item><item>Balanced FPS (0.75x)</item><item>Performance (0.50x)</item><item>Auto GPU (Adreno/Mali)</item><item>Low memory (may reload textures)</item>"),
+    ("<item>0</item><item>1</item><item>2</item><item>4</item>\n    </integer-array>",
+     "<item>0</item><item>1</item><item>2</item><item>3</item><item>4</item>\n    </integer-array>")
 ])
 
 print("Applied Vulkan vendor detection: Qualcomm Adreno (0x5143), ARM Mali (0x13B5), conservative automatic resolution/LOD/anisotropy profile, and unknown-vendor fallback.");

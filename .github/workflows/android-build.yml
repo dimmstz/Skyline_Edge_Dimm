@@ -10,8 +10,6 @@ on:
     tags:
       - "v*"
   pull_request:
-    branches:
-      - main
   workflow_dispatch:
     inputs:
       apk_url:
@@ -30,13 +28,13 @@ permissions:
 
 concurrency:
   # Serialize per branch/PR and cancel stale commits so one branch does not compile duplicate native APKs.
-  group: skyline-android-${{ github.event.pull_request.head.repo.full_name || github.repository }}-${{ github.event.pull_request.head.ref || github.ref_name }}
+  group: skyline-android-${{ github.event_name }}-${{ github.event.pull_request.head.repo.full_name || github.repository }}-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
   build:
     name: Build and verify Android packages
-    if: ${{ github.ref_type != 'tag' }}
+    if: ${{ github.ref_type != 'tag' && github.event_name != 'pull_request' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
 
@@ -162,9 +160,50 @@ jobs:
           test -d "$ANDROID_HOME/platforms/android-35"
           test -d "$ANDROID_HOME/build-tools/35.0.0"
 
-      - name: Run project unit tests (no distributable APK)
-        run: gradle --no-daemon --stacktrace clean testDebugUnitTest
+      - name: Run unit tests and build all variants
+        run: gradle --no-daemon --stacktrace clean testDebugUnitTest assembleDebug assembleRelease bundleRelease
 
+      - name: Verify APK and AAB outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEBUG_APK="app/build/outputs/apk/debug/app-debug.apk"
+          RELEASE_APK="$(find app/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' -print -quit)"
+          RELEASE_AAB="app/build/outputs/bundle/release/app-release.aab"
+
+          test -s "$DEBUG_APK"
+          test -n "$RELEASE_APK"
+          test -s "$RELEASE_APK"
+          test -s "$RELEASE_AAB"
+
+          mkdir -p dist
+          cp "$DEBUG_APK" dist/SkylineDimm-debug.apk
+          cp "$RELEASE_APK" dist/SkylineDimm-release.apk
+          cp "$RELEASE_AAB" dist/SkylineDimm-release.aab
+
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$DEBUG_APK" >/dev/null
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$RELEASE_APK" >/dev/null
+          unzip -t "$RELEASE_AAB" >/dev/null
+
+          if [ -n "${ANDROID_KEYSTORE_PATH:-}" ]; then
+            "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose dist/SkylineDimm-release.apk
+            printf '%s\\n' "Release APK/AAB signed with configured repository secrets." > dist/SIGNING_STATUS.txt
+          else
+            printf '%s\\n' "Release APK/AAB are unsigned. Install the signed debug APK for local testing, or configure the four signing secrets." > dist/SIGNING_STATUS.txt
+          fi
+
+          (
+            cd dist
+            sha256sum SkylineDimm-debug.apk SkylineDimm-release.apk SkylineDimm-release.aab SIGNING_STATUS.txt > SHA256SUMS.txt
+          )
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: SkylineDimm-Android-${{ github.run_number }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
 
   reference-core-build:
     name: Build Strato graphics/video core for Skyline Dimm
@@ -173,7 +212,7 @@ jobs:
       version_code: ${{ steps.version.outputs.version_code }}
       release_tag: ${{ steps.version.outputs.release_tag }}
       persistent_signing: ${{ steps.signing.outputs.persistent }}
-    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.build_reference_core) || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/fix/re4-video-decoder' || github.ref == 'refs/heads/feat/advanced-graphics-video-m23' || github.ref == 'refs/heads/restore/strato-mali-advanced')) || (github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'restore/strato-mali-advanced') }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.build_reference_core) || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/fix/re4-video-decoder' || github.ref == 'refs/heads/feat/advanced-graphics-video-m23' || github.ref == 'refs/heads/restore/strato-mali-advanced')) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 180
     steps:
@@ -207,32 +246,6 @@ jobs:
           done
           exit 1
 
-      - name: Configure Gradle plugin repositories for Strato
-        working-directory: reference/strato
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-
-          path = Path("settings.gradle")
-          source = path.read_text(encoding="utf-8")
-          block = """pluginManagement {
-              repositories {
-                  google()
-                  mavenCentral()
-                  gradlePluginPortal()
-              }
-          }
-
-          """
-          if "pluginManagement" not in source:
-              path.write_text(block + source, encoding="utf-8")
-          elif "google()" not in source.split("pluginManagement", 1)[1].split("}", 1)[0]:
-              raise SystemExit("pluginManagement exists without google(); refusing unsafe rewrite")
-          PY
-          sed -n '1,12p' settings.gradle
-
       - name: Install native test dependencies
         shell: bash
         run: |
@@ -257,6 +270,9 @@ jobs:
 
       - name: Apply Dimm graphics controls and VIC/frame-queue fixes
         run: python3 project/tools/apply_advanced_graphics.py reference/strato
+
+      - name: Apply Skyline Dimm Pix branding and QR support
+        run: python3 project/tools/apply_dimm_pix_branding.py reference/strato
 
       - name: Generate Brazilian Portuguese app localization
         run: python3 project/tools/generate_pt_br_localization.py reference/strato
@@ -364,76 +380,75 @@ jobs:
         run: |
           set -euo pipefail
           chmod +x ./gradlew
-          ./gradlew --no-daemon --stacktrace --max-workers=2 :app:assembleMainlineRelease :app:bundleMainlineRelease
+          ./gradlew --no-daemon --stacktrace --max-workers=2 :app:assembleMainlineRelease
           APK="$(find app/build/outputs/apk/mainline/release -maxdepth 1 -type f -name '*.apk' -print -quit)"
-          AAB="$(find app/build/outputs/bundle -type f -name '*.aab' -print -quit)"
           test -n "$APK"
           test -s "$APK"
-          test -n "$AAB"
-          test -s "$AAB"
           mkdir -p "$GITHUB_WORKSPACE/reference-dist"
           cp "$APK" "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.apk"
-          cp "$AAB" "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.aab"
           AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
           APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
-          "$AAPT" dump badging "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.apk" > "$RUNNER_TEMP/native-apk-metadata.txt"
-          grep -q "package: name='com.dimm.skyline'" "$RUNNER_TEMP/native-apk-metadata.txt"
-          grep -q "versionCode='${{ steps.version.outputs.version_code }}'" "$RUNNER_TEMP/native-apk-metadata.txt"
-          grep -q "versionName='${{ steps.version.outputs.version_name }}'" "$RUNNER_TEMP/native-apk-metadata.txt"
+          "$AAPT" dump badging "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.apk" > "$GITHUB_WORKSPACE/reference-dist/APK-METADATA.txt"
+          grep -q "package: name='com.dimm.skyline'" "$GITHUB_WORKSPACE/reference-dist/APK-METADATA.txt"
+          grep -q "versionCode='${{ steps.version.outputs.version_code }}'" "$GITHUB_WORKSPACE/reference-dist/APK-METADATA.txt"
+          grep -q "versionName='${{ steps.version.outputs.version_name }}'" "$GITHUB_WORKSPACE/reference-dist/APK-METADATA.txt"
           "$APKSIGNER" verify --verbose "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.apk"
-          jarsigner -verify "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.aab"
-          unzip -t "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.apk" >/dev/null
-          unzip -t "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.aab" >/dev/null
           unzip -l "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.apk" | grep -q 'lib/arm64-v8a/libskyline.so'
-          unzip -l "$GITHUB_WORKSPACE/reference-dist/SkylineDimm-M23-ARM64.aab" | grep -q 'base/lib/arm64-v8a/libskyline.so'
+          (
+            cd "$GITHUB_WORKSPACE/reference-dist"
+            sha256sum SkylineDimm-M23-ARM64.apk > SHA256SUMS.txt
+          )
+          if [ "${{ steps.signing.outputs.persistent }}" = "true" ]; then
+            printf '%s\n' "Native Strato/Skyline ARM64 release build with persistent signing; Vulkan resolution scaling, mipmap LOD bias, anisotropy override and expanded NVDEC/VIC frame handling." > "$GITHUB_WORKSPACE/reference-dist/BUILD-INFO.txt"
+          else
+            printf '%s\n' "TEST-ONLY native Strato/Skyline ARM64 build signed with a temporary CI key. This APK cannot update another installation. Configure all four Android signing secrets before creating a distributable release." > "$GITHUB_WORKSPACE/reference-dist/BUILD-INFO.txt"
+          fi
 
-      - name: Upload compiled Strato Mali APK and AAB
+      - name: Upload optimized native emulator
         uses: actions/upload-artifact@v4
         with:
-          name: SkylineDimm-StratoMali-Advanced-APK-AAB
-          path: |
-            reference-dist/SkylineDimm-M23-ARM64.apk
-            reference-dist/SkylineDimm-M23-ARM64.aab
+          name: Skyline-Dimm-Advanced-Graphics-Video-APK
+          path: reference-dist/
           if-no-files-found: error
           retention-days: 30
 
-
   publish-reference-release:
-    name: Publish verified Strato Mali Advanced APK and AAB
+    name: Publish verified native Skyline Dimm APK
     needs: [build, reference-core-build]
     if: ${{ success() && needs.reference-core-build.outputs.persistent_signing == 'true' && ((github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.build_reference_core)) }}
     runs-on: ubuntu-24.04
     steps:
-      - name: Download verified Strato Mali APK and AAB
+      - name: Download verified native APK
         uses: actions/download-artifact@v4
         with:
-          name: SkylineDimm-StratoMali-Advanced-Final
+          name: Skyline-Dimm-Advanced-Graphics-Video-APK
           path: release-assets
 
-      - name: Verify final release APK and AAB
+      - name: Verify release files and hashes
         shell: bash
         run: |
           set -euo pipefail
           test -s release-assets/SkylineDimm-M23-ARM64.apk
-          test -s release-assets/SkylineDimm-M23-ARM64.aab
-          unzip -t release-assets/SkylineDimm-M23-ARM64.apk >/dev/null
-          unzip -t release-assets/SkylineDimm-M23-ARM64.aab >/dev/null
-          unzip -l release-assets/SkylineDimm-M23-ARM64.apk | grep -q 'lib/arm64-v8a/libskyline.so'
-          unzip -l release-assets/SkylineDimm-M23-ARM64.aab | grep -q 'base/lib/arm64-v8a/libskyline.so'
+          test -s release-assets/APK-METADATA.txt
+          test -s release-assets/SHA256SUMS.txt
+          test -s release-assets/BUILD-INFO.txt
+          grep -q "package: name='com.dimm.skyline'" release-assets/APK-METADATA.txt
+          grep -q "versionCode='${{ needs.reference-core-build.outputs.version_code }}'" release-assets/APK-METADATA.txt
+          grep -q "versionName='${{ needs.reference-core-build.outputs.version_name }}'" release-assets/APK-METADATA.txt
+          (cd release-assets && sha256sum --check SHA256SUMS.txt)
 
       - name: Publish native emulator release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.reference-core-build.outputs.release_tag }}
           target_commitish: ${{ github.sha }}
-          name: Skyline Dimm ${{ needs.reference-core-build.outputs.version_name }} - Strato Mali Advanced
+          name: Skyline Dimm ${{ needs.reference-core-build.outputs.version_name }} - Advanced graphics and video
           body: |
-            Native ARM64 Android build based on the pinned Strato Mali source with Dimm Advanced graphics and video integration.
+            Native ARM64 Android build based on the pinned Strato/Skyline source.
 
             - Package: com.dimm.skyline
             - Version: ${{ needs.reference-core-build.outputs.version_name }} (versionCode ${{ needs.reference-core-build.outputs.version_code }})
             - ABI: arm64-v8a
-            - GPU: automatic Vulkan capability detection for Adreno and Mali
             - Internal Vulkan render resolution: 0.50x through 2.00x, native fallback for unsupported passes
             - Texture controls: configurable mipmap LOD bias and device-limited anisotropic filtering
             - Video: exact NVDEC frame-address matching, multiple VIC surfaces, alpha composition, field modes and flipped NV12 output
@@ -449,7 +464,9 @@ jobs:
             Automated NVDEC/VIC and Vulkan resolution tests must pass before publishing. Resident Evil 4 campaign playback and Galaxy M23 visual output still require on-device confirmation.
           files: |
             release-assets/SkylineDimm-M23-ARM64.apk
-            release-assets/SkylineDimm-M23-ARM64.aab
+            release-assets/APK-METADATA.txt
+            release-assets/SHA256SUMS.txt
+            release-assets/BUILD-INFO.txt
           fail_on_unmatched_files: true
           generate_release_notes: true
           make_latest: true
@@ -459,3 +476,5 @@ jobs:
 # - Bump all three values together for each intended native release.
 # - A successful main build publishes the native APK under RELEASE_TAG; run numbers never become app versions.
 # - Tag-triggered runs are skipped to prevent recursive duplicate builds/releases.
+
+# CI trigger: compile the advanced graphics/video branch on demand via a branch push.

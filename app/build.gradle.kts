@@ -1,6 +1,12 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+}
+
+val skylineVersion = Properties().apply {
+    rootProject.file("version.properties").inputStream().use { this.load(it) }
 }
 
 val releaseStorePath = System.getenv("ANDROID_KEYSTORE_PATH")
@@ -22,8 +28,8 @@ android {
         applicationId = "com.dimm.skyline"
         minSdk = 23
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0-reconstruction"
+        versionCode = skylineVersion.getProperty("VERSION_CODE").toInt()
+        versionName = skylineVersion.getProperty("VERSION_NAME")
     }
 
     signingConfigs {
